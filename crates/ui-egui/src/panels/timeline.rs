@@ -1620,6 +1620,84 @@ const CLIP_MENU: &[&[(&str, &str)]] = &[
     &[("Reveal in Project", "clip.revealInProject"), ("Join Through Edits", "sequence.joinThroughEdits")],
 ];
 
+/// The cut right-clicked on a track (#219): the clip ending there and the clip starting there,
+/// either missing at the ends of a gap. Its menu offers the edit point's trim types, Apply Default
+/// Transitions and Join Through Edits, like Premiere's edit point menu.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct EditPointTarget {
+    left: Option<ClipId>,
+    right: Option<ClipId>,
+}
+
+impl EditPointTarget {
+    fn at(seq: &Sequence, track: TrackId, clip: ClipId, edge: filmcraft_edit::Edge) -> Option<Self> {
+        let tr = seq.track(track)?;
+        let it = tr.item(clip)?;
+        Some(match edge {
+            filmcraft_edit::Edge::Out => Self { left: Some(clip), right: tr.items.iter().find(|x| x.start == it.end()).map(|x| x.id) },
+            filmcraft_edit::Edge::In => Self { left: tr.items.iter().find(|x| x.end() == it.start).map(|x| x.id), right: Some(clip) },
+        })
+    }
+}
+
+/// The edit point menu's trim types: label, id (`timeline.editPointMenu.<id>`), trim kind, and
+/// which side of the cut it selects (the incoming clip's In or the outgoing clip's Out).
+const EDIT_POINT_TYPES: &[(&str, &str, &str, filmcraft_edit::Edge)] = &[
+    ("Ripple Trim In", "rippleIn", "ripple", filmcraft_edit::Edge::In),
+    ("Ripple Trim Out", "rippleOut", "ripple", filmcraft_edit::Edge::Out),
+    ("Roll Edit", "roll", "roll", filmcraft_edit::Edge::Out),
+    ("Trim In", "trimIn", "trim", filmcraft_edit::Edge::In),
+    ("Trim Out", "trimOut", "trim", filmcraft_edit::Edge::Out),
+];
+
+/// The edit point context menu (#219).
+fn edit_point_menu(app: &mut FilmcraftApp, ctx: &egui::Context, ui: &mut egui::Ui, seq: &Sequence, target: EditPointTarget) {
+    let selected = app.session.state.edit_points.first().copied();
+    for &(label, id, kind, edge) in EDIT_POINT_TYPES {
+        let clip = match edge {
+            filmcraft_edit::Edge::In => target.right,
+            filmcraft_edit::Edge::Out => target.left,
+        };
+        // a roll needs a clip on both sides of the cut
+        let clip = clip.filter(|_| kind != "roll" || (target.left.is_some() && target.right.is_some()));
+        let out = edge == filmcraft_edit::Edge::Out;
+        let current = selected.is_some_and(|ep| Some(ep.clip) == clip && ep.out == out && serde_json::to_value(ep.kind).ok() == Some(json!(kind)));
+        let text = if current { format!("✓ {label}") } else { label.to_string() };
+        let r = ui.add_enabled(clip.is_some(), egui::Button::new(text));
+        app.auto.add(&format!("timeline.editPointMenu.{id}"), r.rect, label);
+        if r.clicked()
+            && let Some(c) = clip
+        {
+            let e = if out { "out" } else { "in" };
+            if let Err(e) = app.session.execute("trim.selectEditPoint", json!({"clip": c.0, "edge": e, "kind": kind})) {
+                app.ui.status = e.to_string();
+            }
+            ui.close();
+        }
+    }
+    ui.separator();
+    let r = ui.add_enabled(app.session.is_enabled("trim.applyDefaultTransition"), egui::Button::new("Apply Default Transitions"));
+    app.auto.add("timeline.editPointMenu.applyDefaultTransitions", r.rect, "Apply Default Transitions");
+    if r.clicked() {
+        if let Err(e) = crate::menus::invoke(app, ctx, "trim.applyDefaultTransition", json!({})) {
+            app.ui.status = e;
+        }
+        ui.close();
+    }
+    // only this cut (and its linked partners), and only when it is a through edit
+    let through = filmcraft_edit::through::through_edits(seq).iter().any(|e| Some(e.left) == target.left && Some(e.right) == target.right);
+    let r = ui.add_enabled(through, egui::Button::new("Join Through Edits"));
+    app.auto.add("timeline.editPointMenu.joinThroughEdits", r.rect, "Join Through Edits");
+    if r.clicked()
+        && let (Some(left), Some(right)) = (target.left, target.right)
+    {
+        if let Err(e) = app.session.execute("sequence.joinThroughEdits", json!({"cut": [left.0, right.0]})) {
+            app.ui.status = e.to_string();
+        }
+        ui.close();
+    }
+}
+
 /// The clip menu's Multi-Camera submenu: Enable, Flatten, and the cameras of the selected nested
 /// sequence clips (greyed out when none of the selected clips is a nested sequence).
 fn multicam_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, picked: &[&TrackItem]) {
@@ -2065,16 +2143,39 @@ fn interact(app: &mut FilmcraftApp, ui: &mut egui::Ui, seq: &Sequence, layout: &
         }
     }
 
-    // ---- context menu on clips (right-clicking an unselected clip selects it first)
+    // ---- context menu on clips (right-clicking an unselected clip selects it first); on a clip's
+    // edge, the edit point menu instead (right-clicking an unselected edit point selects it first)
+    let edit_point_menu_id = egui::Id::new("timeline.editPointMenu.target");
     if resp.secondary_clicked()
         && let Some(p) = resp.interact_pointer_pos()
-        && let Hit::Clip { clip, .. } = hit(seq, layout, p)
-        && !app.session.state.selection.contains(&clip)
+        && let Hit::Clip { clip, edge, track } = hit(seq, layout, p)
     {
-        let _ = app.session.execute("timeline.select", json!({"clips": [clip.0]}));
+        let target = edge.and_then(|e| EditPointTarget::at(seq, track, clip, e).map(|t| (t, e)));
+        ctx.data_mut(|d| d.insert_temp(edit_point_menu_id, target.map(|(t, _)| t)));
+        if let Some((t, e)) = target {
+            let on_it = app.session.state.edit_points.iter().any(|ep| (ep.out && Some(ep.clip) == t.left) || (!ep.out && Some(ep.clip) == t.right));
+            if !on_it {
+                let kind = match tool {
+                    Tool::Rolling => "roll",
+                    Tool::Ripple => "ripple",
+                    _ => {
+                        let (dist, neighbour) = edge_geometry(seq, layout, track, clip, e, p.x);
+                        selection_trim_kind(app.session.prefs.trim.selection_tool_roll_ripple, false, false, dist, neighbour)
+                    }
+                };
+                let edge = if e == filmcraft_edit::Edge::In { "in" } else { "out" };
+                let _ = app.session.execute("trim.selectEditPoint", json!({"clip": clip.0, "edge": edge, "kind": kind}));
+            }
+        } else if !app.session.state.selection.contains(&clip) {
+            let _ = app.session.execute("timeline.select", json!({"clips": [clip.0]}));
+        }
     }
     resp.context_menu(|ui| {
         ui.set_min_width(220.0);
+        if let Some(target) = ctx.data(|d| d.get_temp::<Option<EditPointTarget>>(edit_point_menu_id)).flatten() {
+            edit_point_menu(app, &ctx, ui, seq, target);
+            return;
+        }
         let sel = app.session.state.selection.clone();
         let picked: Vec<&filmcraft_project::TrackItem> = sel.iter().filter_map(|c| seq.find_item(*c).map(|(_, it)| it)).collect();
         let all_enabled = !picked.is_empty() && picked.iter().all(|it| it.enabled);

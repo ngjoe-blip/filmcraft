@@ -168,11 +168,18 @@ fn main() -> eframe::Result {
             // Settings ▸ Audio Hardware is applied on the first frame (`apply_prefs`).
             app.audio = Some(Box::new(audio::CpalOut::new()));
             app.hooks.pick_files = Some(Box::new(|exts: &[&str]| {
-                rfd::FileDialog::new().add_filter("Media", exts).pick_files().unwrap_or_default().into_iter().map(|p| p.to_string_lossy().to_string()).collect()
+                rfd::FileDialog::new()
+                    .add_filter("Media", &filter_extensions(exts))
+                    .pick_files()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .collect()
             }));
             // Link Media ▸ Locate…, Attach Proxies, Reconnect Full Resolution: one path, not imported.
-            app.hooks.pick_file_for_relink =
-                Some(Box::new(|exts: &[&str], _hint| rfd::FileDialog::new().add_filter("Media", exts).pick_file().map(|p| p.to_string_lossy().to_string())));
+            app.hooks.pick_file_for_relink = Some(Box::new(|exts: &[&str], _hint| {
+                rfd::FileDialog::new().add_filter("Media", &filter_extensions(exts)).pick_file().map(|p| p.to_string_lossy().to_string())
+            }));
             app.hooks.pick_save = Some(Box::new(|name: &str| {
                 rfd::FileDialog::new().add_filter("FilmCraft Project", &["fcproj"]).set_file_name(name).save_file().map(|p| p.to_string_lossy().to_string())
             }));
@@ -185,7 +192,7 @@ fn main() -> eframe::Result {
                 window_raise::raise_without_focus();
             }));
             app.hooks.pick_open_file = Some(Box::new(|filter: &str, exts: &[&str]| {
-                rfd::FileDialog::new().add_filter(filter, exts).pick_file().map(|p| p.to_string_lossy().to_string())
+                rfd::FileDialog::new().add_filter(filter, &filter_extensions(exts)).pick_file().map(|p| p.to_string_lossy().to_string())
             }));
             app.hooks.pick_open_project =
                 Some(Box::new(|| rfd::FileDialog::new().add_filter("FilmCraft Project", &["fcproj"]).pick_file().map(|p| p.to_string_lossy().to_string())));
@@ -241,6 +248,26 @@ fn open_path(path: &str, reveal: bool) -> Result<(), String> {
     cmd.spawn().map(|_| ()).map_err(|e| format!("can't open {path}: {e}"))
 }
 
+/// Extensions for an Open dialog filter. GTK and the XDG portal match filter patterns
+/// case-sensitively, so `*.mp4` hid a camera's `CLIP.MP4` (#262): offer the upper-case spelling
+/// too there. Windows and macOS dialogs already ignore case, so they keep the list as given.
+fn filter_extensions(exts: &[&str]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::with_capacity(exts.len() * 2);
+    for ext in exts {
+        let mut spellings = vec![(*ext).to_string()];
+        if cfg!(not(any(target_os = "windows", target_os = "macos"))) {
+            spellings.push(ext.to_ascii_lowercase());
+            spellings.push(ext.to_ascii_uppercase());
+        }
+        for spelling in spellings {
+            if !out.contains(&spelling) {
+                out.push(spelling);
+            }
+        }
+    }
+    out
+}
+
 /// Put the OS hardware video decoders in front of our own. Registered in a statement of its own:
 /// a log macro does not evaluate its arguments while no logger takes its level, which left the
 /// hardware decoders out of every run.
@@ -278,5 +305,17 @@ mod tests {
         assert!(!log::log_enabled!(log::Level::Info));
         let hardware = super::register_hardware_decoders();
         assert_eq!(filmcraft_platform::registered(), cfg!(any(target_os = "macos", target_os = "windows")), "{hardware:?}");
+    }
+
+    /// Linux file dialogs match patterns case-sensitively, so upper-case camera files (`.MP4`)
+    /// must be offered as well (#262); Windows and macOS keep the list as given.
+    #[test]
+    fn open_dialog_filters_offer_upper_case_extensions_where_dialogs_match_case() {
+        let exts = super::filter_extensions(&["mp4", "MOV", "mp4", "*"]);
+        if cfg!(any(target_os = "windows", target_os = "macos")) {
+            assert_eq!(exts, ["mp4", "MOV", "*"]);
+        } else {
+            assert_eq!(exts, ["mp4", "MP4", "MOV", "mov", "*"]);
+        }
     }
 }

@@ -24,6 +24,8 @@ mod args;
 mod audio;
 mod audio_in;
 mod control_server;
+#[cfg(target_os = "linux")]
+mod dev_icon;
 #[cfg(target_os = "macos")]
 mod native_menu;
 mod window_raise;
@@ -84,6 +86,8 @@ fn main() -> eframe::Result {
         }
     };
     app_nap::disable();
+    #[cfg(target_os = "linux")]
+    dev_icon::ensure_dev_desktop_entry();
     // Panics anywhere go to <data dir>/Logs/crash-<day>.log with a backtrace; the UI pass and
     // frame workers catch them and keep running (see filmcraft_ui_egui::crash).
     filmcraft_ui_egui::crash::install(data_dir.clone().or_else(default_data_dir).map(|d| d.join("Logs")));

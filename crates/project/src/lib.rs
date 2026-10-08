@@ -20,6 +20,7 @@ pub mod keyframe;
 pub mod mask;
 pub mod mixer;
 pub mod multicam;
+pub mod narration;
 pub mod transcript;
 pub mod vtransition;
 
@@ -39,6 +40,7 @@ pub use keyframe::{Interpolation, Keyframe, Param, ParamValue};
 pub use mask::{Mask, MaskMode, MaskPath, MaskVertex, TrackMethod};
 pub use mixer::{AutomationMode, InputMap, MixerStrip, TrackSend};
 pub use multicam::{Camera, MergedClip, MulticamAudio, MulticamSel, MulticamSource};
+pub use narration::{Narration, VocalPitch};
 pub use transcript::{Speaker, Transcript, Word};
 
 macro_rules! id_type {
@@ -1187,6 +1189,10 @@ pub struct Project {
     /// project item. Schema v12.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub source_graphics: BTreeMap<ItemId, SourceGraphic>,
+    /// Narrations (Text to Speech): the script and voice settings each generated WAV item was
+    /// made from, keyed by that item. Schema v13.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub narrations: BTreeMap<ItemId, Narration>,
 }
 
 /// How a sequence is shown in the Timeline panel: its zoom, scroll position and track heights.
@@ -1270,6 +1276,7 @@ impl Project {
             transcripts: BTreeMap::new(),
             search_bins: Vec::new(),
             source_graphics: BTreeMap::new(),
+            narrations: BTreeMap::new(),
         }
     }
 

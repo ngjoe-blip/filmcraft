@@ -45,6 +45,7 @@ pub mod timeline_automation;
 pub mod timeline_captions;
 pub mod tools;
 pub mod trim_monitor;
+pub mod tts;
 pub mod voiceover;
 pub mod workspaces;
 
@@ -94,6 +95,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, p: PanelKind, rect: Rect)
         PanelKind::ReferenceMonitor => reference::show(app, ui, rect),
         PanelKind::Text => text::show(app, ui, rect),
         PanelKind::EssentialSound => essential_sound::show(app, ui, rect),
+        PanelKind::TextToSpeech => tts::show(app, ui, rect),
         other => crate::dock::placeholder(ui, rect, &app.tokens, &format!("{} — coming in a later milestone", other.title())),
     }
 }

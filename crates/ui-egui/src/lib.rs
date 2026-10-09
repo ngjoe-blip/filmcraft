@@ -22,6 +22,7 @@ pub mod panels;
 pub mod perf;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod play_ahead;
+pub mod scrub;
 pub mod state;
 pub mod theme;
 pub mod widgets;
@@ -190,6 +191,8 @@ pub struct FilmcraftApp {
     pub frames: Arc<FrameServer>,
     pub playback: Playback,
     pub audio: Option<Box<dyn AudioOut>>,
+    /// Audio during scrubbing (#211).
+    pub scrub: scrub::ScrubAudio,
     pub hooks: HostHooks,
     pub dialog: Option<Dialog>,
     pub file_dialogs: panels::file_dialogs::FileDialogState,
@@ -397,6 +400,7 @@ impl FilmcraftApp {
             frames,
             playback: Playback { speed: 1.0, ..Default::default() },
             audio: None,
+            scrub: Default::default(),
             hooks: HostHooks::default(),
             // Unsaved changes left by a session that died are offered first thing.
             dialog: recovery.then_some(Dialog::Recovery),
@@ -1297,6 +1301,7 @@ impl FilmcraftApp {
         }
         self.handle_shortcuts(&ctx);
         self.advance_playback(&ctx);
+        self.scrub_audio(&ctx);
         let t = self.tokens;
         let full = ui.max_rect();
         ui.painter().rect_filled(full, 0.0, t.app_bg);

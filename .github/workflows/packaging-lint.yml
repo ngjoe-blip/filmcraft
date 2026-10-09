@@ -64,6 +64,11 @@ jobs:
               assert m["id"] == "ai.storyteller.filmcraft" and m["command"] == "filmcraft", m["id"]
           for key in ("runtime", "runtime-version", "sdk", "finish-args"):
               assert src[key] == bundle[key], f"Flatpak manifests disagree on {key}: {src[key]} vs {bundle[key]}"
+          # Both install the app and the CLI/MCP server (#346).
+          import re
+          def programs(m):
+              return {p for c in m["modules"][0]["build-commands"] for p in re.findall(r"/app/bin/([\w.-]+)", c)}
+          assert programs(src) == programs(bundle) == {"filmcraft", "filmcraft-cli"}, f"Flatpak manifests install {programs(src)} vs {programs(bundle)}"
           print("Flatpak manifests ok")
           EOF
       - name: FreeBSD package layout (stub binaries)

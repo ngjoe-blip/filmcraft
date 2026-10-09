@@ -165,7 +165,8 @@ Notes:
 ## 2b. Command-line interface
 
 Every command is also one shell call away. Options go anywhere; output is JSON; exit status is 0 on
-success, 1 when a command fails and 2 on a usage error. `filmcraft-cli help` prints the reference.
+success, 1 when a command fails and 2 on a usage error. `filmcraft-cli help`, `filmcraft-cli --help`
+and `filmcraft-cli -h` print the reference and exit successfully.
 
 ```sh
 filmcraft-cli commands razor                     # find ids (add --json for machine output)

@@ -162,6 +162,10 @@ fn register_hardware_decoders() -> filmcraft_platform::Availability {
 
 #[tokio::main]
 async fn main() {
+    if matches!(std::env::args().nth(1).as_deref(), Some("--help")) {
+        print!("{HELP}");
+        return;
+    }
     if matches!(std::env::args().nth(1).as_deref(), Some("--version" | "-V")) {
         println!("filmcraft-cli {}", env!("CARGO_PKG_VERSION"));
         return;

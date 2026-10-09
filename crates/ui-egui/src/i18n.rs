@@ -18,10 +18,11 @@ pub enum Language {
     /// Persisted as `pt-br` (the blanket `rename_all` would produce `ptbr`).
     #[serde(rename = "pt-br")]
     PtBr,
+    Uk,
 }
 
 impl Language {
-    pub const ALL: [Self; 4] = [Self::En, Self::Ja, Self::Es, Self::PtBr];
+    pub const ALL: [Self; 5] = [Self::En, Self::Ja, Self::Es, Self::PtBr, Self::Uk];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -29,6 +30,7 @@ impl Language {
             Self::Ja => "日本語",
             Self::Es => "Español",
             Self::PtBr => "Português (Brasil)",
+            Self::Uk => "Українська",
         }
     }
 
@@ -39,6 +41,7 @@ impl Language {
             Self::Ja => "ja",
             Self::Es => "es",
             Self::PtBr => "pt-br",
+            Self::Uk => "uk",
         }
     }
 
@@ -48,6 +51,7 @@ impl Language {
             "ja" => Some(Self::Ja),
             "es" => Some(Self::Es),
             "pt-br" => Some(Self::PtBr),
+            "uk" => Some(Self::Uk),
             _ => None,
         }
     }
@@ -58,6 +62,7 @@ impl Language {
             Self::Ja => JAPANESE,
             Self::Es => SPANISH,
             Self::PtBr => PORTUGUESE,
+            Self::Uk => UKRAINIAN,
         };
         table.iter().find(|(english, _)| *english == text).map_or(text, |(_, translated)| translated)
     }
@@ -839,6 +844,360 @@ const PORTUGUESE: &[(&str, &str)] = &[
     ("Zoom to Sequence", "Zoom para a sequência"),
 ];
 
+/// Ukrainian covers the Spanish/Portuguese menu keys plus Clip, Audio and native Settings.
+const UKRAINIAN: &[(&str, &str)] = &[
+    ("About FilmCraft", "Про FilmCraft"),
+    ("Add Audio Submix Track", "Додати доріжку підміксу аудіо"),
+    ("Add Caption at Playhead", "Додати субтитр у позиції курсора відтворення"),
+    ("Add Chapter Marker…", "Додати маркер розділу…"),
+    ("Add Edit", "Додати розріз"),
+    ("Add Edit to All Tracks", "Додати розріз на всіх доріжках"),
+    ("Add Flash Cue Marker…", "Додати маркер сигналу Flash…"),
+    ("Add Frame Hold", "Додати стоп-кадр"),
+    ("Add Guide…", "Додати напрямну…"),
+    ("Add Marker", "Додати маркер"),
+    ("Add New Caption Track…", "Додати нову доріжку субтитрів…"),
+    ("Add Range Marker", "Додати маркер діапазону"),
+    ("Add Range Marker to In and Out", "Додати маркер діапазону між початковою та кінцевою позначками"),
+    ("Add Tracks…", "Додати доріжки…"),
+    ("Adjustment Layer…", "Коригувальний шар…"),
+    ("Align to Selection", "Вирівняти за виділенням"),
+    ("Align to Video Frame", "Вирівняти за відеокадром"),
+    ("Align to Video Frame as Group", "Вирівняти за відеокадром як групу"),
+    ("All Panels", "Усі панелі"),
+    ("Alpha", "Альфа"),
+    ("Appearance", "Вигляд"),
+    ("Appearance…", "Вигляд…"),
+    ("Apply Audio Transition", "Застосувати аудіоперехід"),
+    ("Apply Default Transitions to Selection", "Застосувати типові переходи до виділення"),
+    ("Apply Video Transition", "Застосувати відеоперехід"),
+    ("Arrange", "Упорядкувати"),
+    ("ArtCraft Website", "Вебсайт ArtCraft"),
+    ("Assembly", "Компонування"),
+    ("Attach Proxies…", "Приєднати проксі…"),
+    ("Audio", "Аудіо"),
+    ("Audio Channels…", "Аудіоканали…"),
+    ("Audio Clip Mixer", "Мікшер аудіокліпів"),
+    ("Audio Gain…", "Підсилення аудіо…"),
+    ("Audio Hardware…", "Аудіообладнання…"),
+    ("Audio In", "Початок аудіо"),
+    ("Audio Meters", "Індикатори рівня аудіо"),
+    ("Audio Options", "Параметри аудіо"),
+    ("Audio Out", "Кінець аудіо"),
+    ("Audio Track Mixer", "Мікшер аудіодоріжок"),
+    ("Audio Waveform", "Осцилограма аудіо"),
+    ("Auto Save…", "Автозбереження…"),
+    ("Automate to Sequence…", "Автоматично розмістити в секвенції…"),
+    ("Bars and Tone…", "Кольорові смуги й тон…"),
+    ("Bin", "Контейнер"),
+    ("Bin From Selection", "Контейнер із виділення"),
+    ("Black Video…", "Чорне відео…"),
+    ("Blue", "Синій"),
+    ("Bottom", "Низ"),
+    ("Breakout to Mono", "Розділити на моноканали"),
+    ("Bring Forward", "Перемістити вперед"),
+    ("Bring to Front", "На передній план"),
+    ("Brown", "Коричневий"),
+    ("Captions", "Субтитри"),
+    ("Captions and Graphics", "Субтитри й графіка"),
+    ("Captions…", "Субтитри…"),
+    ("Caribbean", "Карибський"),
+    ("Center Horizontally", "По центру горизонтально"),
+    ("Center Vertically", "По центру вертикально"),
+    ("Cerulean", "Лазурний"),
+    ("Clear", "Видалити"),
+    ("Clear Guides", "Видалити напрямні"),
+    ("Clear In", "Прибрати початкову позначку"),
+    ("Clear In and Out", "Прибрати початкову та кінцеву позначки"),
+    ("Clear Markers", "Видалити маркери"),
+    ("Clear Out", "Прибрати кінцеву позначку"),
+    ("Clear Selected Marker", "Видалити вибраний маркер"),
+    ("Clip", "Кліп"),
+    ("Close", "Закрити"),
+    ("Close All Other Projects", "Закрити всі інші проєкти"),
+    ("Close All Projects", "Закрити всі проєкти"),
+    ("Close Gap", "Прибрати проміжок"),
+    ("Close Project", "Закрити проєкт"),
+    ("Color Management…", "Керування кольором…"),
+    ("Color Matte…", "Кольорова підкладка…"),
+    ("Comparison View", "Режим порівняння"),
+    ("Composite Video", "Композитне відео"),
+    ("Consolidate Duplicates", "Об’єднати дублікати"),
+    ("Copy", "Копіювати"),
+    ("Copy Paste Includes Sequence Markers", "Копіювати й вставляти разом із маркерами секвенції"),
+    ("Create Captions from Transcript…", "Створити субтитри з транскрипції…"),
+    ("Create Multi-Camera Source Sequence…", "Створити вихідну мультикамерну секвенцію…"),
+    ("Create Proxies…", "Створити проксі…"),
+    ("Cut", "Вирізати"),
+    ("Darkest", "Найтемніший"),
+    ("Delete Render Files", "Видалити файли рендерингу"),
+    ("Delete Render Files In to Out", "Видалити файли рендерингу між початковою та кінцевою позначками"),
+    ("Delete Tracks…", "Видалити доріжки…"),
+    ("Delete Transcript", "Видалити транскрипцію"),
+    ("Demo Footage", "Демонстраційні матеріали"),
+    ("Demo Project", "Демонстраційний проєкт"),
+    ("Deselect All", "Зняти все виділення"),
+    ("Detach Proxies", "Від’єднати проксі"),
+    ("Display Mode", "Режим відображення"),
+    ("Distribute", "Розподілити"),
+    ("Distribute Horizontally", "Розподілити горизонтально"),
+    ("Distribute Space Horizontally", "Рівні проміжки по горизонталі"),
+    ("Distribute Space Vertically", "Рівні проміжки по вертикалі"),
+    ("Distribute Vertically", "Розподілити вертикально"),
+    ("Duplicate", "Дублювати"),
+    ("Dynamic Audio Waveforms", "Динамічні осцилограми аудіо"),
+    ("Edit", "Редагування"),
+    ("Edit Offline…", "Редагувати автономно…"),
+    ("Edit Original", "Редагувати оригінал"),
+    ("Edit Subclip…", "Редагувати підкліп…"),
+    ("Editing", "Монтаж"),
+    ("Effect Controls", "Керування ефектами"),
+    ("Effects", "Ефекти"),
+    ("Ellipse", "Еліпс"),
+    ("Enable", "Увімкнути"),
+    ("Enable Remix", "Увімкнути ремікс"),
+    ("Essential Graphics", "Основна графіка"),
+    ("Essential Sound", "Основний звук"),
+    ("Events", "Події"),
+    ("Export", "Експорт"),
+    ("Export As Motion Graphics Template…", "Експортувати як шаблон анімаційної графіки…"),
+    ("Extract", "Вилучити зі зсувом"),
+    ("Extract Audio", "Видобути аудіо"),
+    ("Field Options…", "Параметри полів…"),
+    ("File", "Файл"),
+    ("File…", "Файл…"),
+    ("Fill frame", "Заповнити кадр"),
+    ("FilmCraft Help…", "Довідка FilmCraft…"),
+    ("FilmCraft on GitHub", "FilmCraft на GitHub"),
+    ("FilmCraft on getartcraft.com", "FilmCraft на getartcraft.com"),
+    ("Find Next", "Знайти далі"),
+    ("Find…", "Знайти…"),
+    ("Fit", "Умістити"),
+    ("Fit to frame", "Умістити в кадр"),
+    ("Flatten", "Звести"),
+    ("Forest", "Лісовий"),
+    ("Frame Blending", "Змішування кадрів"),
+    ("Frame Hold Options…", "Параметри стоп-кадру…"),
+    ("Frame Sampling", "Вибірка кадрів"),
+    ("From Bin", "Із контейнера"),
+    ("From Source Monitor", "Із монітора джерела"),
+    ("From Source Monitor, Match Frame", "Із монітора джерела, відповідний кадр"),
+    ("From file…", "Із файлу…"),
+    ("Full", "Повна"),
+    ("Generate Audio Waveform", "Створити осцилограму аудіо"),
+    ("Get Media File Properties for", "Показати властивості медіафайлу для"),
+    ("Go to Gap", "Перейти до проміжку"),
+    ("Go to In", "Перейти до початкової позначки"),
+    ("Go to Next Caption Segment", "Перейти до наступного сегмента субтитрів"),
+    ("Go to Next Marker", "Перейти до наступного маркера"),
+    ("Go to Out", "Перейти до кінцевої позначки"),
+    ("Go to Previous Caption Segment", "Перейти до попереднього сегмента субтитрів"),
+    ("Go to Previous Marker", "Перейти до попереднього маркера"),
+    ("Go to Split", "Перейти до розділеної позначки"),
+    ("Graphics and Titles", "Графіка й титри"),
+    ("Graphics…", "Графіка…"),
+    ("Green", "Зелений"),
+    ("Group", "Згрупувати"),
+    ("Guide Templates", "Шаблони напрямних"),
+    ("Help", "Довідка"),
+    ("Hide All Caption Tracks", "Приховати всі доріжки субтитрів"),
+    ("High Quality Playback", "Відтворення у високій якості"),
+    ("History", "Історія"),
+    ("Import From", "Імпортувати з"),
+    ("Import Image Sequence…", "Імпортувати послідовність зображень…"),
+    ("Import from Media Browser", "Імпортувати з медіабраузера"),
+    ("Import…", "Імпортувати…"),
+    ("Info", "Інформація"),
+    ("Ingest Settings…", "Налаштування завантаження медіа…"),
+    ("Insert", "Вставити"),
+    ("Insert Frame Hold Segment", "Вставити сегмент стоп-кадру"),
+    ("Install Motion Graphics Template…", "Установити шаблон анімаційної графіки…"),
+    ("Interpret Footage…", "Інтерпретувати матеріал…"),
+    ("Join the ArtCraft Discord…", "Приєднатися до Discord ArtCraft…"),
+    ("Keyboard Shortcuts…", "Клавіатурні скорочення…"),
+    ("Label", "Мітка"),
+    ("Labels…", "Мітки…"),
+    ("Language", "Мова"),
+    ("Lavender", "Лавандовий"),
+    ("Learning", "Навчання"),
+    ("Left", "Ліворуч"),
+    ("Libraries", "Бібліотеки"),
+    ("Lift", "Вилучити без зсуву"),
+    ("Light", "Світлий"),
+    ("Link", "Зв’язати"),
+    ("Link Media…", "Прив’язати медіа…"),
+    ("Linked Selection", "Пов’язане виділення"),
+    ("Lock Guides", "Заблокувати напрямні"),
+    ("Lumetri Color", "Колір Lumetri"),
+    ("Lumetri Scopes", "Відеоскопи Lumetri"),
+    ("Magnification", "Масштаб"),
+    ("Make Offline…", "Зробити автономним…"),
+    ("Make Subclip…", "Створити підкліп…"),
+    ("Make Subsequence", "Створити підсеквенцію"),
+    ("Manage Guides…", "Керувати напрямними…"),
+    ("Mark Clip", "Позначити кліп"),
+    ("Mark In", "Установити початкову позначку"),
+    ("Mark Out", "Установити кінцеву позначку"),
+    ("Mark Selection", "Позначити виділення"),
+    ("Mark Split", "Установити розділену позначку"),
+    ("Markers", "Маркери"),
+    ("Match Frame", "Знайти відповідний кадр"),
+    ("Media Analysis & Transcription…", "Аналіз медіа й транскрибування…"),
+    ("Media Browser", "Медіабраузер"),
+    ("Media Cache…", "Медіакеш…"),
+    ("Media…", "Медіа…"),
+    ("Medium", "Середній"),
+    ("Memory…", "Пам’ять…"),
+    ("Merge Clips…", "Об’єднати кліпи…"),
+    ("Metadata", "Метадані"),
+    ("Modify", "Змінити"),
+    ("Motion Graphics Template…", "Шаблон анімаційної графіки…"),
+    ("Multi-Camera", "Мультикамера"),
+    ("Multi-Camera View", "Мультикамерний режим"),
+    ("Nest…", "Вкласти в секвенцію…"),
+    ("New", "Створити"),
+    ("New Layer", "Новий шар"),
+    ("New Project Panel", "Нова панель проєкту"),
+    ("Next in Sequence", "Наступний у секвенції"),
+    ("Next in Track", "Наступний на доріжці"),
+    ("Normalize Mix Track…", "Нормалізувати доріжку міксу…"),
+    ("Offline File…", "Автономний файл…"),
+    ("Open Project…", "Відкрити проєкт…"),
+    ("Optical Flow", "Оптичний потік"),
+    ("Overwrite", "Перезаписати"),
+    ("Paste", "Вставити"),
+    ("Paste Attributes…", "Вставити атрибути…"),
+    ("Paste Insert", "Вставити зі зсувом"),
+    ("Paused Resolution", "Роздільність під час паузи"),
+    ("Playback Resolution", "Роздільність відтворення"),
+    ("Playback…", "Відтворення…"),
+    ("Plugins…", "Плагіни…"),
+    ("Polygon", "Багатокутник"),
+    ("Preferences", "Налаштування"),
+    ("Previous in Sequence", "Попередній у секвенції"),
+    ("Previous in Track", "Попередній на доріжці"),
+    ("Program", "Програма"),
+    ("Progress", "Перебіг"),
+    ("Project", "Проєкт"),
+    ("Project Manager…", "Менеджер проєкту…"),
+    ("Project Settings", "Налаштування проєкту"),
+    ("Project…", "Проєкт…"),
+    ("Properties", "Властивості"),
+    ("Purple", "Пурпуровий"),
+    ("Reconnect Full Resolution Media…", "Повторно під’єднати медіа повної роздільності…"),
+    ("Recover Unsaved Changes…", "Відновити незбережені зміни…"),
+    ("Rectangle", "Прямокутник"),
+    ("Red", "Червоний"),
+    ("Redo", "Повторити"),
+    ("Reference Monitor", "Еталонний монітор"),
+    ("Remix", "Ремікс"),
+    ("Remix Properties…", "Властивості реміксу…"),
+    ("Remove Attributes…", "Видалити атрибути…"),
+    ("Remove Filler Words", "Видалити слова-паразити"),
+    ("Remove Pauses", "Видалити паузи"),
+    ("Remove Unused", "Видалити невикористане"),
+    ("Rename…", "Перейменувати…"),
+    ("Render Audio", "Рендерити аудіо"),
+    ("Render Effects In to Out", "Рендерити ефекти між початковою та кінцевою позначками"),
+    ("Render In to Out", "Рендерити між початковою та кінцевою позначками"),
+    ("Render Selection", "Рендерити виділення"),
+    ("Replace Fonts in Projects…", "Замінити шрифти в проєктах…"),
+    ("Replace With Clip", "Замінити кліпом"),
+    ("Report an Issue…", "Повідомити про проблему…"),
+    ("Reset All Parameters", "Скинути всі параметри"),
+    ("Reset Duration", "Скинути тривалість"),
+    ("Reset to Saved Layout", "Відновити збережене компонування"),
+    ("Restore Captions from Source Clip", "Відновити субтитри з вихідного кліпу"),
+    ("Reveal Log Files…", "Показати файли журналу…"),
+    ("Reverse Match Frame", "Знайти відповідний кадр у секвенції"),
+    ("Revert", "Повернути до збереженого"),
+    ("Revert Remix", "Скасувати ремікс"),
+    ("Review", "Перегляд"),
+    ("Right", "Праворуч"),
+    ("Ripple Delete", "Видалити зі зсувом"),
+    ("Ripple Sequence Markers", "Зсувати маркери секвенції"),
+    ("Rose", "Рожевий"),
+    ("Safe Margins", "Безпечні поля"),
+    ("Save", "Зберегти"),
+    ("Save All", "Зберегти все"),
+    ("Save As…", "Зберегти як…"),
+    ("Save Guides as Template…", "Зберегти напрямні як шаблон…"),
+    ("Save a Copy…", "Зберегти копію…"),
+    ("Save as Template…", "Зберегти як шаблон…"),
+    ("Scale to Frame Size", "Масштабувати до розміру кадру"),
+    ("Scene Edit Detection…", "Виявлення монтажних склейок…"),
+    ("Scratch Disks…", "Робочі диски…"),
+    ("Search Bin", "Пошуковий контейнер"),
+    ("Select", "Вибрати"),
+    ("Select All", "Виділити все"),
+    ("Select All Matching", "Виділити всі відповідні"),
+    ("Select Label Group", "Виділити групу міток"),
+    ("Select Next Graphic", "Вибрати наступний графічний елемент"),
+    ("Select Next Layer", "Вибрати наступний шар"),
+    ("Select Previous Graphic", "Вибрати попередній графічний елемент"),
+    ("Select Previous Layer", "Вибрати попередній шар"),
+    ("Selection Follows Playhead", "Виділення слідує за курсором відтворення"),
+    ("Selection as FilmCraft Project…", "Виділення як проєкт FilmCraft…"),
+    ("Selection…", "Виділення…"),
+    ("Send Backward", "Перемістити назад"),
+    ("Send to Back", "На задній план"),
+    ("Sequence", "Секвенція"),
+    ("Sequence From Clip", "Секвенція з кліпу"),
+    ("Sequence Settings…", "Налаштування секвенції…"),
+    ("Sequence…", "Секвенція…"),
+    ("Settings", "Налаштування"),
+    ("Show Active Caption Tracks Only", "Показати лише активні доріжки субтитрів"),
+    ("Show All Caption Tracks", "Показати всі доріжки субтитрів"),
+    ("Show All Marker Colors", "Показати всі кольори маркерів"),
+    ("Show Guides", "Показати напрямні"),
+    ("Show Rulers", "Показати лінійки"),
+    ("Show Through Edits", "Показати розрізи без зміни кадру"),
+    ("Simplify Sequence…", "Спростити секвенцію…"),
+    ("Snap in Program Monitor", "Прив’язка в моніторі програми"),
+    ("Snap in Timeline", "Прив’язка на часовій шкалі"),
+    ("Source", "Джерело"),
+    ("Source Settings…", "Налаштування джерела…"),
+    ("Speed/Duration…", "Швидкість/тривалість…"),
+    ("Synchronize…", "Синхронізувати…"),
+    ("System Compatibility Report…", "Звіт про сумісність системи…"),
+    ("Tan", "Світло-коричневий"),
+    ("Teal", "Бірюзовий"),
+    ("Text", "Текст"),
+    ("Time Interpolation", "Часова інтерполяція"),
+    ("Timecode", "Таймкод"),
+    ("Timecode…", "Таймкод…"),
+    ("Timeline", "Часова шкала"),
+    ("Timeline…", "Часова шкала…"),
+    ("Toggle Proxies", "Перемкнути проксі"),
+    ("Tools", "Інструменти"),
+    ("Top", "Верх"),
+    ("Transcribe Sequence…", "Транскрибувати секвенцію…"),
+    ("Transcribe…", "Транскрибувати…"),
+    ("Transcript", "Транскрипція"),
+    ("Transparent Video…", "Прозоре відео…"),
+    ("Trim Edit", "Підрізати склейку"),
+    ("Trim…", "Підрізання…"),
+    ("Undo", "Скасувати"),
+    ("Ungroup", "Розгрупувати"),
+    ("Universal Counting Leader…", "Універсальний зворотний відлік…"),
+    ("Update Metadata…", "Оновити метадані…"),
+    ("Upgrade Caption to Graphic", "Перетворити субтитр на графіку"),
+    ("Upgrade to Source Graphic", "Перетворити на вихідну графіку"),
+    ("Vertical Text", "Вертикальний текст"),
+    ("Video In", "Початок відео"),
+    ("Video Options", "Параметри відео"),
+    ("Video Out", "Кінець відео"),
+    ("Video and Audio Waveform Split", "Розділений вигляд відео й осцилограми аудіо"),
+    ("View", "Вигляд"),
+    ("Violet", "Фіолетовий"),
+    ("Window", "Вікно"),
+    ("Workspaces", "Робочі середовища"),
+    ("Yellow", "Жовтий"),
+    ("Zoom In", "Збільшити"),
+    ("Zoom Out", "Зменшити"),
+    ("Zoom to Sequence", "Умістити секвенцію"),
+];
+
 const JAPANESE: &[(&str, &str)] = &[
     ("Type Tool", "文字ツール"),
     ("Vertical Type Tool", "縦書き文字ツール"),
@@ -965,11 +1324,27 @@ mod tests {
         assert_eq!(Language::parse("pt-br"), Some(Language::PtBr));
         assert_eq!(serde_json::to_string(&Language::PtBr).unwrap(), "\"pt-br\"");
         assert_eq!(serde_json::from_str::<Language>("\"pt-br\"").unwrap(), Language::PtBr);
-        assert_eq!(Language::ALL.len(), 4);
+        // uk: matching menu coverage, literal fallback, and the standard Ukrainian code
+        for (i, (en, uk)) in UKRAINIAN.iter().enumerate() {
+            assert!(!uk.is_empty());
+            assert!(UKRAINIAN.iter().take(i).all(|(other, _)| en != other));
+            assert_eq!(Language::Uk.tr(en), *uk);
+            assert_eq!(en.ends_with('…'), uk.ends_with('…'), "{en}");
+        }
+        assert_eq!(Language::Uk.tr("File"), "Файл");
+        assert_eq!(Language::Uk.tr("мій кліп.mp4"), "мій кліп.mp4");
+        assert_eq!(Language::Uk.tr("An untranslated label"), "An untranslated label");
+        assert_eq!(Language::Uk.name(), "Українська");
+        assert_eq!(Language::Uk.code(), "uk");
+        assert_eq!(Language::parse("uk"), Some(Language::Uk));
+        assert_eq!(serde_json::to_string(&Language::Uk).unwrap(), "\"uk\"");
+        assert_eq!(serde_json::from_str::<Language>("\"uk\"").unwrap(), Language::Uk);
+        assert_eq!(Language::ALL.len(), 5);
+        assert!(Language::ALL.contains(&Language::Uk));
     }
 
     #[test]
-    fn spanish_and_portuguese_entries_are_menu_labels() {
+    fn spanish_portuguese_and_ukrainian_entries_are_menu_labels() {
         // a renamed command would otherwise leave a dead entry and an untranslated menu item
         let app = crate::FilmcraftApp::new(filmcraft_engine::Session::default());
         let items = crate::menus::menu_items(&app);
@@ -982,6 +1357,16 @@ mod tests {
         for ((en, _), (pt_en, _)) in SPANISH.iter().zip(PORTUGUESE) {
             assert_eq!(en, pt_en);
             assert!(known(pt_en), "not a menu label: {pt_en}");
+        }
+        // Ukrainian also translates words Spanish leaves unchanged and the native Settings menu.
+        for (en, _) in UKRAINIAN {
+            assert!(known(en) || *en == "Settings", "not a menu label: {en}");
+        }
+        for (en, _) in SPANISH {
+            assert!(UKRAINIAN.iter().any(|(uk_en, _)| uk_en == en), "missing Ukrainian menu label: {en}");
+        }
+        for en in crate::menus::MENUS.into_iter().chain(["Audio", "Settings"]) {
+            assert_ne!(Language::Uk.tr(en), en, "untranslated Ukrainian menu: {en}");
         }
     }
 
@@ -1004,8 +1389,50 @@ mod tests {
         assert!(saved.contains("\"language\":\"pt-br\""), "{saved}");
         let restored: crate::state::UiState = serde_json::from_str(&saved).unwrap();
         assert_eq!(restored.language, Language::PtBr);
+        let result = crate::menus::invoke(&mut app, &ctx, "app.language.ukrainian", serde_json::json!({})).unwrap();
+        assert_eq!(result, serde_json::json!("uk"));
+        assert_eq!(app.ui.language, Language::Uk);
+        for item in crate::menus::menu_items(&app).iter().filter(|it| it.id.starts_with("app.language.")) {
+            assert_eq!(item.checked, Some(item.id == "app.language.ukrainian"), "{}", item.id);
+        }
+        let saved = serde_json::to_string(&app.ui).unwrap();
+        assert!(saved.contains("\"language\":\"uk\""), "{saved}");
+        let restored: crate::state::UiState = serde_json::from_str(&saved).unwrap();
+        assert_eq!(restored.language, Language::Uk);
         crate::menus::invoke(&mut app, &ctx, "app.language.english", serde_json::json!({})).unwrap();
         assert_eq!(app.ui.language, Language::En);
+    }
+
+    #[test]
+    fn ukrainian_renders_with_bundled_fonts() {
+        let ctx = egui::Context::default();
+        crate::theme::install(&ctx, &crate::theme::Tokens::for_kind(crate::theme::ThemeKind::default()));
+        let mut output = ctx.run_ui(egui::RawInput::default(), |_| {});
+        output.textures_delta.clear();
+        ctx.fonts_mut(|fonts| {
+            // Include the entire alphabet, even letters not yet used by a translated menu label.
+            let alphabet = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя";
+            let chars: std::collections::BTreeSet<_> = alphabet
+                .chars()
+                .chain(Language::Uk.name().chars())
+                .chain(UKRAINIAN.iter().flat_map(|(_, uk)| uk.chars()))
+                .filter(|ch| !ch.is_ascii())
+                .collect();
+            for family in crate::theme::font_families() {
+                let font = egui::FontId::new(13.0, family);
+                // has_glyph compares font faces, giving false negatives when Inter also supplies
+                // the replacement character (the named medium/semibold stacks). Compare the
+                // actual glyph texture regions instead; the noncharacter U+10FFFF is missing.
+                let text: String = chars.iter().copied().chain(['\u{10ffff}']).collect();
+                let galley = fonts.layout_no_wrap(text, font.clone(), egui::Color32::WHITE);
+                let glyphs = &galley.rows[0].glyphs;
+                assert_eq!(glyphs.len(), chars.len() + 1);
+                let replacement = glyphs.last().unwrap().uv_rect;
+                for glyph in glyphs.iter().take(chars.len()) {
+                    assert_ne!(glyph.uv_rect, replacement, "missing {} in {font:?}", glyph.chr);
+                }
+            }
+        });
     }
 
     #[test]

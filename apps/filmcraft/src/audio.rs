@@ -17,6 +17,9 @@ pub struct CpalOut {
     hw: AudioHardwarePrefs,
     /// Sequence sample rate for "Attempt to force hardware to document sample rate".
     document_rate: Option<u32>,
+    /// Status-bar note: the host's default device could not be opened and a fallback device is
+    /// in use, or no output device was found (playing without sound).
+    note: Option<String>,
 }
 
 /// The host named in the settings (empty or unknown = the default host).
@@ -30,21 +33,47 @@ fn host(name: &str) -> cpal::Host {
     cpal::default_host()
 }
 
-/// The output device named in the settings (empty or missing = the host's default).
-fn output_device(h: &cpal::Host, name: &str) -> Option<cpal::Device> {
+/// The output device the settings ask for, with a status-bar note when a fallback is in use.
+struct DeviceChoice {
+    device: cpal::Device,
+    /// The host's default device could not be opened: this device is the fallback.
+    fallback: Option<String>,
+}
+
+/// The output device named in the settings (empty or missing = the host's default). When the
+/// default cannot be opened — a broken ALSA `default` (missing `99-pipewire-default.conf`,
+/// #23/#106) — the first device that can, so the app is not silently mute.
+fn output_device(h: &cpal::Host, name: &str) -> Option<DeviceChoice> {
     if !name.is_empty()
         && let Ok(mut devs) = h.output_devices()
         && let Some(d) = devs.find(|d| d.name().is_ok_and(|n| n == name))
     {
-        return Some(d);
+        return Some(DeviceChoice { device: d, fallback: None });
     }
-    h.default_output_device()
+    if let Some(d) = h.default_output_device()
+        && d.default_output_config().is_ok()
+    {
+        return Some(DeviceChoice { device: d, fallback: None });
+    }
+    let mut devs = h.output_devices().ok()?;
+    let d = devs.find(|d| d.default_output_config().is_ok())?;
+    let found = d.name().unwrap_or_default();
+    log::warn!("the default audio output device cannot be opened; falling back to '{found}'");
+    Some(DeviceChoice { device: d, fallback: Some(format!("Audio hardware: the default output device cannot be opened; using '{found}'")) })
 }
 
 impl CpalOut {
     pub fn new() -> Self {
         let host = cpal::default_host();
-        let cfg = host.default_output_device().and_then(|dev| dev.default_output_config().ok());
+        let choice = output_device(&host, "");
+        let cfg = choice.as_ref().and_then(|c| c.device.default_output_config().ok());
+        let note = match choice {
+            Some(c) => c.fallback,
+            None => {
+                log::warn!("no audio output device found");
+                Some("No audio output device found: playing without sound (check Settings ▸ Audio Hardware)".into())
+            }
+        };
         Self {
             stream: None,
             played: Arc::new(AtomicU64::new(0)),
@@ -53,6 +82,7 @@ impl CpalOut {
             channels: cfg.as_ref().map_or(2, |c| c.channels()),
             hw: AudioHardwarePrefs::default(),
             document_rate: None,
+            note,
         }
     }
 
@@ -124,7 +154,8 @@ impl AudioOut for CpalOut {
     fn start(&mut self, mut fill: Box<dyn FnMut(&mut [f32], usize) + Send>) -> Result<u32, String> {
         self.stop();
         let host = host(&self.hw.device_class);
-        let dev = output_device(&host, &self.hw.default_output).ok_or("no output device")?;
+        let DeviceChoice { device: dev, fallback } = output_device(&host, &self.hw.default_output).ok_or("no output device")?;
+        self.note = fallback;
         let cfg = self.config(&dev)?;
         let channels = cfg.channels() as usize;
         if channels == 0 || cfg.sample_rate().0 == 0 {
@@ -185,7 +216,7 @@ impl AudioOut for CpalOut {
         let h = host(&self.hw.device_class);
         let outputs = h.output_devices().map(|d| d.filter_map(|x| x.name().ok()).collect()).unwrap_or_default();
         let inputs = h.input_devices().map(|d| d.filter_map(|x| x.name().ok()).collect()).unwrap_or_default();
-        let output_channels = output_device(&h, &self.hw.default_output).and_then(|d| self.config(&d).ok()).map(|c| c.channels()).unwrap_or(0);
+        let output_channels = output_device(&h, &self.hw.default_output).and_then(|c| self.config(&c.device).ok()).map(|cfg| cfg.channels()).unwrap_or(0);
         AudioDevices { hosts: cpal::available_hosts().iter().map(|h| h.name().to_string()).collect(), inputs, outputs, output_channels }
     }
     fn configure(&mut self, hw: &AudioHardwarePrefs, document_rate: Option<u32>) {
@@ -193,12 +224,16 @@ impl AudioOut for CpalOut {
         self.document_rate = document_rate;
         // the rate playback mixes at must be known before `start`
         let host = host(&self.hw.device_class);
-        if let Some(dev) = output_device(&host, &self.hw.default_output)
-            && let Ok(cfg) = self.config(&dev)
+        if let Some(choice) = output_device(&host, &self.hw.default_output)
+            && let Ok(cfg) = self.config(&choice.device)
         {
             self.rate = cfg.sample_rate().0;
             self.channels = cfg.channels();
+            self.note = choice.fallback;
         }
+    }
+    fn note(&self) -> Option<String> {
+        self.note.clone()
     }
 }
 

@@ -85,6 +85,11 @@ pub trait AudioOut {
     /// effect at the next `start`; `document_rate` is the sequence sample rate for "Attempt to
     /// force hardware to document sample rate".
     fn configure(&mut self, _hw: &filmcraft_engine::settings::AudioHardwarePrefs, _document_rate: Option<u32>) {}
+    /// A hardware note for the status bar — e.g. the default output device could not be opened
+    /// and a fallback device is in use, or no output device was found — or None.
+    fn note(&self) -> Option<String> {
+        None
+    }
 }
 
 /// What the platform audio layer can open (Settings ▸ Audio Hardware).
@@ -555,6 +560,9 @@ impl FilmcraftApp {
                 self.start_audio();
             }
         }
+        if let Some(note) = self.audio.as_ref().and_then(|a| a.note()) {
+            self.ui.status = note;
+        }
         if prev.is_none() && !self.workspace_restored {
             // reopen the workspace in use when the app last closed
             self.workspace_restored = true;
@@ -819,7 +827,12 @@ impl FilmcraftApp {
             })
         };
         match a.start(fill) {
-            Ok(_) => self.playback.audio_clock = true,
+            Ok(_) => {
+                self.playback.audio_clock = true;
+                if let Some(note) = self.audio.as_ref().and_then(|audio| audio.note()) {
+                    self.ui.status = note;
+                }
+            }
             Err(e) => {
                 log::warn!("audio output unavailable: {e}");
                 self.playback.audio_clock = false;

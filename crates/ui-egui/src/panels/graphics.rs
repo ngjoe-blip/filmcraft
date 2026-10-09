@@ -1023,7 +1023,10 @@ impl Ctx<'_> {
     }
     fn row(&self, ui: &mut egui::Ui, label: &str) -> (Rect, egui::Ui) {
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW), Sense::hover());
-        ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, label, Tokens::ui(12.0), self.t.text_dim);
+        let trimmed = label.trim_start();
+        let indent = (label.len() - trimmed.len()) as f32 * 4.0;
+        let text = crate::i18n::tr_ctx(ui.ctx(), trimmed);
+        ui.painter().text(pos2(r.min.x + 18.0 + indent, r.center().y), Align2::LEFT_CENTER, text, Tokens::ui(12.0), self.t.text_dim);
         let v = ui.new_child(
             egui::UiBuilder::new()
                 .max_rect(Rect::from_min_max(pos2(r.min.x + 130.0, r.min.y + 3.0), pos2(r.max.x - 6.0, r.max.y - 3.0)))
@@ -1081,7 +1084,8 @@ impl Ctx<'_> {
     }
     fn check(&mut self, vui: &mut egui::Ui, id: &str, label: &str) -> bool {
         let mut b = pv(self.e, id, self.mt).as_bool().unwrap_or(false);
-        let r = vui.checkbox(&mut b, label);
+        let tr_label = if label.is_empty() { "" } else { crate::i18n::tr_ctx(vui.ctx(), label) };
+        let r = vui.checkbox(&mut b, tr_label);
         self.auto(id, r.rect, label);
         if r.changed() {
             self.set(id, json!(b));
@@ -1104,14 +1108,15 @@ impl Ctx<'_> {
             _ => 0,
         };
         let mut sel = cur;
-        let r = egui::ComboBox::from_id_salt(("gfxc", self.clip.0, self.layer, id)).selected_text(opts.get(cur).copied().unwrap_or("")).width(width).show_ui(
-            vui,
-            |ui| {
+        let cur_text = opts.get(cur).copied().unwrap_or("");
+        let r = egui::ComboBox::from_id_salt(("gfxc", self.clip.0, self.layer, id))
+            .selected_text(crate::i18n::tr_ctx(vui.ctx(), cur_text))
+            .width(width)
+            .show_ui(vui, |ui| {
                 for (i, o) in opts.iter().enumerate() {
-                    ui.selectable_value(&mut sel, i, *o);
+                    ui.selectable_value(&mut sel, i, crate::i18n::tr_ctx(ui.ctx(), *o));
                 }
-            },
-        );
+            });
         self.auto(id, r.response.rect, id);
         if sel != cur {
             self.set(id, json!(sel));
@@ -1220,7 +1225,7 @@ fn glyph_button(ui: &mut egui::Ui, how: &str, tip: &str, on: bool, t: &Tokens) -
         ui.painter().rect_filled(r, 3.0, t.hover);
     }
     align_glyph(ui.painter(), Rect::from_center_size(r.center(), vec2(16.0, 14.0)), how, if resp.hovered() || on { t.text } else { t.text_dim });
-    resp.on_hover_text(tip)
+    resp.on_hover_text(crate::i18n::tr_ctx(ui.ctx(), tip))
 }
 
 fn letter_button(ui: &mut egui::Ui, text: &str, tip: &str, on: bool, t: &Tokens, font: egui::FontId) -> egui::Response {
@@ -1231,7 +1236,7 @@ fn letter_button(ui: &mut egui::Ui, text: &str, tip: &str, on: bool, t: &Tokens,
         ui.painter().rect_filled(r, 3.0, t.hover);
     }
     ui.painter().text(r.center(), Align2::CENTER_CENTER, text, font, if on || resp.hovered() { t.text } else { t.text_dim });
-    resp.on_hover_text(tip)
+    resp.on_hover_text(crate::i18n::tr_ctx(ui.ctx(), tip))
 }
 
 /// Whether the Properties panel should show the graphic editor.
@@ -1396,7 +1401,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             let wresp = ui.interact(wr, egui::Id::new(("gfx-text-props", clip.0, l)), Sense::click());
             icons::paint(ui.painter(), wr.shrink(4.0), Icon::Wrench, if wresp.hovered() { t.text } else { t.text_dim });
             cx.autos.push(("graphics.textProperties".into(), wr, "Text Properties".into()));
-            if wresp.on_hover_text("Text Properties").clicked() {
+            if wresp.on_hover_text(app.tr("Text Properties")).clicked() {
                 let flag = |id: &str| pv(e, id, mt).as_bool().unwrap_or(false);
                 let ligatures = flag("ligatures");
                 app.ui.text_props_dialog = Some(TextPropsDialog {
@@ -1485,7 +1490,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             let vertical = pv(e, "vertical", mt).as_bool().unwrap_or(false);
             let (_, mut vui) = cx.row(ui, "Orientation");
             let mut value = vertical;
-            let response = vui.checkbox(&mut value, "Vertical Text");
+            let response = vui.checkbox(&mut value, crate::i18n::tr_ctx(vui.ctx(), "Vertical Text"));
             cx.auto("vertical", response.rect, "Vertical Text");
             if response.changed() {
                 cx.set("vertical", json!(value));
@@ -1586,12 +1591,12 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut close = ctx.input(|i| i.key_pressed(egui::Key::Escape));
     let mut ok = false;
     let name = |paragraph: bool| if paragraph { "Paragraph Text" } else { "Point Text" };
-    egui::Window::new("Text Properties").collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
-        ui.label("Text Layer Type");
-        let r = egui::ComboBox::from_id_salt("gfx-text-type").selected_text(name(d.paragraph)).width(190.0).show_ui(ui, |ui| {
+    egui::Window::new(crate::i18n::tr_ctx(ctx, "Text Properties")).collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+        ui.label(crate::i18n::tr_ctx(ui.ctx(), "Text Layer Type"));
+        let r = egui::ComboBox::from_id_salt("gfx-text-type").selected_text(crate::i18n::tr_ctx(ui.ctx(), name(d.paragraph))).width(190.0).show_ui(ui, |ui| {
             for paragraph in [false, true] {
                 // vertical text has no box to wrap in
-                let r = ui.add_enabled_ui(!(paragraph && d.vertical), |ui| ui.selectable_label(d.paragraph == paragraph, name(paragraph))).inner;
+                let r = ui.add_enabled_ui(!(paragraph && d.vertical), |ui| ui.selectable_label(d.paragraph == paragraph, crate::i18n::tr_ctx(ui.ctx(), name(paragraph)))).inner;
                 elems.push((format!("graphics.textProperties.type.{}", if paragraph { "paragraph" } else { "point" }), r.rect, name(paragraph)));
                 if r.clicked() {
                     d.paragraph = paragraph;
@@ -1600,15 +1605,15 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
         });
         elems.push(("graphics.textProperties.type".into(), r.response.rect, "Text Layer Type"));
         ui.add_space(6.0);
-        ui.label("Text Styling");
-        let r = ui.checkbox(&mut d.ligatures, "Ligatures");
+        ui.label(crate::i18n::tr_ctx(ui.ctx(), "Text Styling"));
+        let r = ui.checkbox(&mut d.ligatures, crate::i18n::tr_ctx(ui.ctx(), "Ligatures"));
         elems.push(("graphics.textProperties.ligatures".into(), r.rect, "Ligatures"));
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            let r = ui.button("Cancel");
+            let r = ui.button(crate::i18n::tr_ctx(ui.ctx(), "Cancel"));
             elems.push(("graphics.textProperties.cancel".into(), r.rect, "Cancel"));
             close |= r.clicked();
-            let r = ui.button("OK");
+            let r = ui.button(crate::i18n::tr_ctx(ui.ctx(), "OK"));
             elems.push(("graphics.textProperties.ok".into(), r.rect, "OK"));
             ok |= r.clicked();
         });

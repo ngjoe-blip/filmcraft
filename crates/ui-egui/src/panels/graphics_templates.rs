@@ -323,7 +323,8 @@ fn hex(c: [f32; 4]) -> String {
 
 fn row_label(ui: &mut egui::Ui, label: &str, t: &Tokens) -> egui::Ui {
     let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 28.0), Sense::hover());
-    ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, label, Tokens::ui(12.0), t.text_dim);
+    let tr_label = if label.is_empty() { "" } else { crate::i18n::tr_ctx(ui.ctx(), label) };
+    ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, tr_label, Tokens::ui(12.0), t.text_dim);
     ui.new_child(
         egui::UiBuilder::new()
             .max_rect(Rect::from_min_max(pos2(r.min.x + 130.0, r.min.y + 3.0), pos2(r.max.x - 6.0, r.max.y - 3.0)))
@@ -473,9 +474,9 @@ pub fn responsive_time(app: &FilmcraftApp, ui: &mut egui::Ui, clip: ClipId, it: 
     }
     let mut vui = row_label(ui, "Roll", &t);
     let mut mode = m.roll.mode;
-    let r = egui::ComboBox::from_id_salt(("gfx-roll", clip.0)).selected_text(mode.label()).width(120.0).show_ui(&mut vui, |ui| {
+    let r = egui::ComboBox::from_id_salt(("gfx-roll", clip.0)).selected_text(crate::i18n::tr_ctx(ui.ctx(), mode.label())).width(120.0).show_ui(&mut vui, |ui| {
         for x in RollMode::ALL {
-            ui.selectable_value(&mut mode, x, x.label());
+            ui.selectable_value(&mut mode, x, crate::i18n::tr_ctx(ui.ctx(), x.label()));
         }
     });
     autos.push(("graphics.roll.mode".into(), r.response.rect, "Roll".into()));
@@ -494,7 +495,7 @@ pub fn responsive_time(app: &FilmcraftApp, ui: &mut egui::Ui, clip: ClipId, it: 
     let mut vui = row_label(ui, "", &t);
     for (key, label, v) in [("startOffScreen", "Start Off Screen", m.roll.start_off_screen), ("endOffScreen", "End Off Screen", m.roll.end_off_screen)] {
         let mut b = v;
-        let r = vui.checkbox(&mut b, label);
+        let r = vui.checkbox(&mut b, crate::i18n::tr_ctx(vui.ctx(), label));
         autos.push((format!("graphics.roll.{key}"), r.rect, label.into()));
         if r.changed() {
             actions.push(("graphics.setRoll".into(), json!({"clip": clip.0, key: b})));
@@ -539,11 +540,11 @@ pub fn responsive_position(
             .unwrap_or_default(),
     };
     let mut vui = row_label(ui, "Pin To", &t);
-    let r = egui::ComboBox::from_id_salt(("gfx-pin", clip.0, layer)).selected_text(&target_name).width(150.0).show_ui(&mut vui, |ui| {
-        if ui.selectable_label(pin.is_none(), "None").clicked() {
+    let r = egui::ComboBox::from_id_salt(("gfx-pin", clip.0, layer)).selected_text(crate::i18n::tr_ctx(ui.ctx(), &target_name)).width(150.0).show_ui(&mut vui, |ui| {
+        if ui.selectable_label(pin.is_none(), crate::i18n::tr_ctx(ui.ctx(), "None")).clicked() {
             actions.push(("graphics.pin".into(), json!({"clip": clip.0, "layer": layer, "to": "none"})));
         }
-        if ui.selectable_label(target_name == "Video Frame", "Video Frame").clicked() {
+        if ui.selectable_label(target_name == "Video Frame", crate::i18n::tr_ctx(ui.ctx(), "Video Frame")).clicked() {
             actions.push(("graphics.pin".into(), json!({"clip": clip.0, "layer": layer, "to": "frame"})));
         }
         for (i, &e) in idx.iter().enumerate() {

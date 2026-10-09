@@ -838,8 +838,9 @@ fn transport(app: &mut FilmcraftApp, ui: &mut egui::Ui, row: Rect, cx: &mut Ctx)
     let mut x = row.center().x - bw * buttons.len() as f32 / 2.0;
     for (icon, cmd, tip) in buttons {
         let r = Rect::from_min_size(pos2(x, row.min.y + 4.0), vec2(bw - 2.0, 26.0));
-        let resp = ui.interact(r, egui::Id::new(("mixer-transport", cmd)), Sense::click()).on_hover_text(tip);
-        app.auto.add(&format!("mixer.transport.{cmd}"), r, tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(("mixer-transport", cmd)), Sense::click()).on_hover_text(tr_tip);
+        app.auto.add(&format!("mixer.transport.{cmd}"), r, tr_tip);
         if resp.hovered() {
             ui.painter().rect_filled(r, 4.0, t.hover);
         }

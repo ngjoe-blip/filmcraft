@@ -219,7 +219,13 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             }
             let n = entries.iter().filter(|e| !e.is_dir).count();
             let sel = app.session.browser.selection.len();
-            let status = if sel > 0 { format!("{sel} / {n} {}", app.tr("items")) } else { format!("{n} {}", app.tr("items")) };
+            let status = if app.ui.language == crate::i18n::Language::ZhCn {
+                if sel > 0 { format!("已选择 {n} 项中的 {sel} 项") } else { format!("{n} 项") }
+            } else if sel > 0 {
+                format!("{sel} of {n} items selected")
+            } else {
+                format!("{n} items")
+            };
             ui.painter().text(pos2(list_r.min.x + 6.0, rect.max.y - 12.0), Align2::LEFT_CENTER, &status, Tokens::ui(11.0), t.text_dim);
             app.auto.add("mediaBrowser.count", Rect::from_min_size(pos2(list_r.min.x, rect.max.y - 22.0), vec2(160.0, 20.0)), &status);
         }

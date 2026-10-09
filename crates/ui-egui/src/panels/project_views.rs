@@ -203,28 +203,28 @@ pub fn item_interactions(
 
 fn item_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, id: ItemId, kind: &ItemKind, actions: &mut Actions) {
     let sel = || json!({"items": [id.0]});
-    if ui.button("Rename").clicked() {
+    if ui.button(app.tr("Rename")).clicked() {
         actions.push(("projectPanel.rename".into(), json!({"item": id.0})));
         ui.close();
     }
-    if ui.button("Open in Source Monitor").clicked() {
+    if ui.button(app.tr("Open in Source Monitor")).clicked() {
         actions.push(("source.open".into(), json!({"item": id.0})));
         ui.close();
     }
-    if matches!(kind, ItemKind::Sequence(_)) && ui.button("Open in Timeline").clicked() {
+    if matches!(kind, ItemKind::Sequence(_)) && ui.button(app.tr("Open in Timeline")).clicked() {
         actions.push(("sequence.open".into(), json!({"item": id.0})));
         ui.close();
     }
-    if ui.button("New Sequence From Clip").clicked() {
+    if ui.button(app.tr("New Sequence From Clip")).clicked() {
         actions.push(("file.newSequence".into(), json!({"fromItem": id.0})));
         ui.close();
     }
-    if ui.button("Duplicate").clicked() {
+    if ui.button(app.tr("Duplicate")).clicked() {
         actions.push(("project.select".into(), sel()));
         actions.push(("edit.duplicate".into(), json!({})));
         ui.close();
     }
-    if ui.button("Set Poster Frame").clicked() {
+    if ui.button(app.tr("Set Poster Frame")).clicked() {
         // the hover-scrubbed time when there is one
         let h = app.ui.project_panel.hover.filter(|h| h.item == id.0);
         actions.push(("project.select".into(), sel()));
@@ -461,7 +461,7 @@ pub fn list_view(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, v: &View
                 actions.push(("project.sort".into(), json!({"column": c.name})));
             }
             resp.context_menu(|ui| {
-                if ui.button("Metadata Display…").clicked() {
+                if ui.button(app.tr("Metadata Display…")).clicked() {
                     actions.push(("projectPanel.metadataDisplay".into(), json!({})));
                     ui.close();
                 }
@@ -514,13 +514,13 @@ fn background_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, bin: Opt
         ("Automate to Sequence…", "clip.automateToSequence"),
         ("Import…", "file.import"),
     ] {
-        if ui.button(label).clicked() {
+        if ui.button(app.tr(label)).clicked() {
             let p = if cmd == "file.newBin" { json!({"name": "New Bin", "parent": bin}) } else { json!({}) };
             actions.push((cmd.into(), p));
             ui.close();
         }
     }
-    ui.menu_button("New Item", |ui| crate::panels::project::new_item_menu(app, ui, &v.prefix, actions));
+    ui.menu_button(app.tr("New Item"), |ui| crate::panels::project::new_item_menu(app, ui, &v.prefix, actions));
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -970,14 +970,14 @@ fn card_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, item: u64, act
         actions.push(("project.freeform.unstack".into(), json!({"items": items})));
         ui.close();
     }
-    ui.menu_button("Clip Size", |ui| {
+    ui.menu_button(app.tr("Clip Size"), |ui| {
         for (label, step) in [("Larger", 1), ("Smaller", -1)] {
-            if ui.button(label).clicked() {
+            if ui.button(app.tr(label)).clicked() {
                 actions.push(("project.freeform.resize".into(), json!({"items": items, "step": step})));
                 ui.close();
             }
         }
-        if ui.button("Default").clicked() {
+        if ui.button(app.tr("Default")).clicked() {
             actions.push(("project.freeform.resize".into(), json!({"items": items, "size": app.session.prefs.project_panel.freeform.card_size})));
             ui.close();
         }
@@ -991,8 +991,9 @@ fn card_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, item: u64, act
 
 fn canvas_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, bin: Option<u64>, actions: &mut Actions) {
     fn entry(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, actions: &mut Actions, id: &str, label: &str, cmd: &str, p: serde_json::Value) {
-        let b = ui.button(label);
-        app.auto.add(&format!("{}.canvasMenu.{id}", v.prefix), b.rect, label);
+        let label_tr = app.tr(label);
+        let b = ui.button(label_tr);
+        app.auto.add(&format!("{}.canvasMenu.{id}", v.prefix), b.rect, label_tr);
         if b.clicked() {
             actions.push((cmd.into(), p));
             ui.close();
@@ -1009,7 +1010,7 @@ fn canvas_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, bin: Option<
         .and_then(|v| serde_json::from_value(v["arrangements"].clone()).ok())
         .unwrap_or_default();
     ui.add_enabled_ui(!names.is_empty(), |ui| {
-        ui.menu_button("Restore Arrangement", |ui| {
+        ui.menu_button(app.tr("Restore Arrangement"), |ui| {
             for n in &names {
                 if ui.button(n).clicked() {
                     actions.push(("project.freeform.restoreArrangement".into(), json!({"name": n, "bin": bin})));
@@ -1017,7 +1018,7 @@ fn canvas_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, v: &View, bin: Option<
                 }
             }
         });
-        ui.menu_button("Delete Arrangement", |ui| {
+        ui.menu_button(app.tr("Delete Arrangement"), |ui| {
             for n in &names {
                 if ui.button(n).clicked() {
                     actions.push(("project.freeform.deleteArrangement".into(), json!({"name": n, "bin": bin})));

@@ -271,7 +271,8 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let ctx = ui.ctx().clone();
     for (id, label, tip, w) in buttons {
         let r = Rect::from_min_size(pos2(x, bar.min.y), vec2(w, bar.height()));
-        let resp = ui.interact(r, egui::Id::new(id), Sense::click()).on_hover_text(tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(id), Sense::click()).on_hover_text(tr_tip);
         let bg = if resp.is_pointer_button_down_on() {
             t.pressed
         } else if resp.hovered() {
@@ -284,9 +285,10 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             let playing = app.session.trim_play.around.is_some();
             icons::paint(ui.painter(), Rect::from_center_size(r.center(), vec2(14.0, 14.0)), if playing { Icon::Pause } else { Icon::Loop }, t.icon);
         } else {
-            ui.painter().text(r.center(), Align2::CENTER_CENTER, &label, Tokens::ui(12.0), t.text);
+            let tr_label = app.tr(&label);
+            ui.painter().text(r.center(), Align2::CENTER_CENTER, tr_label, Tokens::ui(12.0), t.text);
         }
-        app.auto.add(id, r, tip);
+        app.auto.add(id, r, tr_tip);
         if resp.clicked() {
             let res = match id {
                 "trimMonitor.playAround" => app.session.execute("trim.playAround", json!({"clock": ctx.input(|i| i.time), "toggle": true})),
@@ -304,11 +306,12 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     }
     // exit trim mode
     let r = Rect::from_min_size(pos2(rect.max.x - 30.0, bar.min.y + 3.0), vec2(22.0, 22.0));
-    let resp = ui.interact(r, egui::Id::new("trimMonitor.exit"), Sense::click()).on_hover_text("Exit Trim Mode");
+    let exit_tip = app.tr("Exit Trim Mode");
+    let resp = ui.interact(r, egui::Id::new("trimMonitor.exit"), Sense::click()).on_hover_text(exit_tip);
     let c = if resp.hovered() { t.tab_text_active } else { t.text_dim };
     ui.painter().line_segment([r.min + vec2(6.0, 6.0), r.max - vec2(6.0, 6.0)], Stroke::new(1.5, c));
     ui.painter().line_segment([pos2(r.max.x - 6.0, r.min.y + 6.0), pos2(r.min.x + 6.0, r.max.y - 6.0)], Stroke::new(1.5, c));
-    app.auto.add("trimMonitor.exit", r, "Exit Trim Mode");
+    app.auto.add("trimMonitor.exit", r, exit_tip);
     if resp.clicked() {
         let _ = app.session.execute("trim.clear", json!({}));
     }

@@ -613,17 +613,18 @@ pub fn compare_bar(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, rate: f
     let t = app.tokens;
     let rf = Tick(app.ui.program.compare_ref.unwrap_or(app.session.playhead().0));
     let tc = format_time(rf, rate, drop_frame, TimeDisplay::Timecode, 48000);
-    ui.painter().text(pos2(bar.min.x + 4.0, bar.center().y), Align2::LEFT_CENTER, format!("Reference  {tc}"), Tokens::ui(11.0), t.text_dim);
+    ui.painter().text(pos2(bar.min.x + 4.0, bar.center().y), Align2::LEFT_CENTER, format!("{}  {tc}", app.tr("Reference")), Tokens::ui(11.0), t.text_dim);
     let mut x = bar.max.x;
     for (key, label, tip) in
         [("set", "Set", "Set the reference to the playhead"), ("next", "▶", "Reference: next frame"), ("prev", "◀", "Reference: previous frame")]
     {
         let r = Rect::from_min_max(pos2(x - 34.0, bar.min.y + 1.0), pos2(x - 2.0, bar.max.y - 1.0));
         x -= 34.0;
-        let resp = ui.interact(r, egui::Id::new(("compare", key)), Sense::click()).on_hover_text(tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(("compare", key)), Sense::click()).on_hover_text(tr_tip);
         ui.painter().rect_filled(r, 3.0, if resp.hovered() { t.hover } else { t.field_bg });
-        ui.painter().text(r.center(), Align2::CENTER_CENTER, label, Tokens::ui(10.0), t.text);
-        app.auto.add(&format!("program.compare.{key}"), r, tip);
+        ui.painter().text(r.center(), Align2::CENTER_CENTER, app.tr(label), Tokens::ui(10.0), t.text);
+        app.auto.add(&format!("program.compare.{key}"), r, tr_tip);
         if resp.clicked() {
             let nt = match key {
                 "set" => app.session.playhead(),

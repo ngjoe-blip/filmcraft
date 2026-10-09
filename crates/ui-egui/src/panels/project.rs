@@ -380,8 +380,9 @@ fn body(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, v: &View, actions
         Inst::Tab(k) => BinId(app.ui.project_panel.tabs[k].bin),
     };
     let up = Rect::from_min_size(pos2(head.min.x, head.center().y - 9.0), vec2(22.0, 18.0));
-    let up_resp = ui.interact(up, egui::Id::new((&pre, "up")), Sense::click()).on_hover_text("Up one level");
-    app.auto.add(&format!("{pre}.up"), up, "Up one level");
+    let up_tip = app.tr("Up one level");
+    let up_resp = ui.interact(up, egui::Id::new((&pre, "up")), Sense::click()).on_hover_text(up_tip);
+    app.auto.add(&format!("{pre}.up"), up, up_tip);
     let can_up = v.bin != top;
     if up_resp.hovered() && can_up {
         ui.painter().rect_filled(up, 3.0, t.hover);
@@ -410,7 +411,7 @@ fn body(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, v: &View, actions
     let mut q = app.ui.project_search.clone();
     crate::widgets::search_field(&mut child, &mut q, app.tr("Search"), search_rect.width(), &t);
     app.ui.project_search = q;
-    app.auto.add(&format!("{pre}.search"), search_rect, "Search");
+    app.auto.add(&format!("{pre}.search"), search_rect, app.tr("Search"));
     let find = Rect::from_min_size(pos2(search_rect.max.x + 8.0, row.min.y), vec2(24.0, 22.0));
     let fr = ui.interact(find, egui::Id::new((&pre, "find")), Sense::click()).on_hover_text(app.tr("Find…"));
     app.auto.add(&format!("{pre}.find"), find, "Find…");
@@ -501,7 +502,7 @@ fn preview_area(app: &mut FilmcraftApp, ui: &mut egui::Ui, r: Rect, pre: &str) {
     ui.painter().rect_filled(r, 4.0, t.tl_header_bg);
     app.auto.add(&format!("{pre}.previewArea"), r, "Preview Area");
     let Some(id) = app.session.state.project_selection.first().copied() else {
-        ui.painter().text(r.center(), Align2::CENTER_CENTER, "Select an item to preview it", Tokens::ui(11.0), t.text_faint);
+        ui.painter().text(r.center(), Align2::CENTER_CENTER, app.tr("Select an item to preview it"), Tokens::ui(11.0), t.text_faint);
         return;
     };
     let Some(it) = app.session.project.item(id).cloned() else { return };
@@ -522,7 +523,7 @@ fn preview_area(app: &mut FilmcraftApp, ui: &mut egui::Ui, r: Rect, pre: &str) {
         format!("{}{}", it.type_label(), if it.has_video() { format!(", {}", col("Video Info")) } else { String::new() }),
         [col("Media Duration"), col("Frame Rate")].into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join(", "),
         col("Audio Info"),
-        format!("Video Usage: {vu}  Audio Usage: {au}"),
+        format!("{}: {vu}  {}: {au}", app.tr("Video Usage"), app.tr("Audio Usage")),
     ];
     let mut y = r.min.y + 12.0;
     for (i, l) in lines.iter().enumerate() {
@@ -599,8 +600,9 @@ fn footer(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, v: &View, action
         (Icon::Automate, "clip.automateToSequence", "Automate to Sequence"),
     ] {
         let r = Rect::from_min_size(pos2(rx - 24.0, bar.min.y + 5.0), vec2(24.0, 22.0));
-        let resp = ui.interact(r, egui::Id::new((pre, "pb", id)), Sense::click()).on_hover_text(tip);
-        app.auto.add(&format!("{pre}.button.{id}"), r, tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new((pre, "pb", id)), Sense::click()).on_hover_text(tr_tip);
+        app.auto.add(&format!("{pre}.button.{id}"), r, tr_tip);
         if resp.hovered() {
             ui.painter().rect_filled(r, 3.0, t.hover);
         }
@@ -614,7 +616,7 @@ fn footer(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, v: &View, action
                     let parent = (v.bin != app.session.project.root.id).then_some(v.bin.0);
                     actions.push(("file.newBin".into(), json!({"name": "New Bin", "parent": parent})));
                 }
-                "project.delete" if app.session.state.project_selection.is_empty() => app.ui.status = "Select items to clear".into(),
+                "project.delete" if app.session.state.project_selection.is_empty() => app.ui.status = app.tr("Select items to clear").into(),
                 _ => actions.push((id.into(), json!({}))),
             }
         }
@@ -635,8 +637,9 @@ pub const NEW_ITEMS: [(&str, &str); 8] = [
 
 pub fn new_item_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, pre: &str, actions: &mut Actions) {
     for (label, c) in NEW_ITEMS {
-        let b = ui.button(label);
-        app.auto.add(&format!("{pre}.newItem.{c}"), b.rect, label);
+        let tr_label = app.tr(label);
+        let b = ui.button(tr_label);
+        app.auto.add(&format!("{pre}.newItem.{c}"), b.rect, tr_label);
         if b.clicked() {
             actions.push((c.into(), json!({})));
             ui.close();
@@ -652,16 +655,18 @@ fn sort_icons_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui, pre: &str, actions
     }
     for (col, label) in entries {
         let on = cur.column == col;
-        let r = ui.selectable_label(on, &label);
-        app.auto.add(&format!("{pre}.sortIcons.{}", if col.is_empty() { "userOrder" } else { col.as_str() }), r.rect, &label);
+        let tr_label = app.tr(&label);
+        let r = ui.selectable_label(on, tr_label);
+        app.auto.add(&format!("{pre}.sortIcons.{}", if col.is_empty() { "userOrder" } else { col.as_str() }), r.rect, tr_label);
         if r.clicked() {
             actions.push(("project.view.set".into(), json!({"iconSort": {"column": col, "descending": false}})));
             ui.close();
         }
     }
     ui.separator();
-    let r = ui.selectable_label(cur.descending, "Descending");
-    app.auto.add(&format!("{pre}.sortIcons.descending"), r.rect, "Descending");
+    let desc_tr = app.tr("Descending");
+    let r = ui.selectable_label(cur.descending, desc_tr);
+    app.auto.add(&format!("{pre}.sortIcons.descending"), r.rect, desc_tr);
     if r.clicked() {
         actions.push(("project.view.set".into(), json!({"iconSort": {"descending": !cur.descending}})));
         ui.close();
@@ -681,14 +686,16 @@ pub fn panel_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui) -> bool {
     let has_project_path = app.session.path.is_some();
     let sc = |id: &str| app.session.shortcuts.primary(id);
     let (s_close, s_save, s_bin, s_find) = (sc("file.closeProject"), sc("file.save"), sc("file.newBin"), sc("edit.find"));
+    let lang = app.ui.language;
     {
         let mut item = |ui: &mut egui::Ui, id: &str, label: &str, enabled: bool, shortcut: Option<&str>| -> bool {
-            let mut b = egui::Button::new(label);
+            let tr_label = lang.tr(label);
+            let mut b = egui::Button::new(tr_label);
             if let Some(s) = shortcut {
                 b = b.shortcut_text(s);
             }
             let r = ui.add_enabled(enabled, b);
-            app.auto.add(&format!("project.menu.{id}"), r.rect, label);
+            app.auto.add(&format!("project.menu.{id}"), r.rect, tr_label);
             r.clicked()
         };
         if item(ui, "closeProject", "Close Project", true, s_close.as_deref()) {
@@ -730,8 +737,9 @@ pub fn panel_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui) -> bool {
         ui.separator();
     }
     for (mode, label, key) in [(ViewMode::List, "List", "Cmd+PageUp"), (ViewMode::Icon, "Icon", "Cmd+PageDown"), (ViewMode::Freeform, "Freeform", "")] {
-        let r = ui.add(egui::Button::selectable(v.mode == mode, label).shortcut_text(key));
-        app.auto.add(&format!("project.menu.view.{mode:?}"), r.rect, label);
+        let tr_label = lang.tr(label);
+        let r = ui.add(egui::Button::selectable(v.mode == mode, tr_label).shortcut_text(key));
+        app.auto.add(&format!("project.menu.view.{mode:?}"), r.rect, tr_label);
         if r.clicked() {
             set_mode(app, inst, mode, &mut actions);
             close = true;
@@ -745,57 +753,59 @@ pub fn panel_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui) -> bool {
         ("hoverScrub", "Hover Scrub", pp.hover_scrub, "Shift+H"),
         ("thumbnailControlsAllDevices", "Thumbnail controls for all pointing devices", pp.thumbnail_controls_all_devices, ""),
     ] {
-        let r = ui.add(egui::Button::selectable(on, label).shortcut_text(shortcut));
-        app.auto.add(&format!("project.menu.{key}"), r.rect, label);
+        let tr_label = lang.tr(label);
+        let r = ui.add(egui::Button::selectable(on, tr_label).shortcut_text(shortcut));
+        app.auto.add(&format!("project.menu.{key}"), r.rect, tr_label);
         if r.clicked() {
             actions.push(("project.view.set".into(), json!({key: !on})));
             close = true;
         }
     }
     ui.separator();
-    let fr = ui.menu_button("Font Size", |ui| {
+    let fr = ui.menu_button(lang.tr("Font Size"), |ui| {
         for f in FontSize::ALL {
-            let r = ui.selectable_label(pp.view.font_size == f, f.label());
-            app.auto.add(&format!("project.menu.fontSize.{f:?}"), r.rect, f.label());
+            let tr_flabel = lang.tr(f.label());
+            let r = ui.selectable_label(pp.view.font_size == f, tr_flabel);
+            app.auto.add(&format!("project.menu.fontSize.{f:?}"), r.rect, tr_flabel);
             if r.clicked() {
                 actions.push(("project.view.set".into(), json!({"fontSize": f})));
                 ui.close();
             }
         }
     });
-    app.auto.add("project.menu.fontSize", fr.response.rect, "Font Size");
+    app.auto.add("project.menu.fontSize", fr.response.rect, lang.tr("Font Size"));
     ui.separator();
-    let r = ui.button("Refresh Sort Order");
-    app.auto.add("project.menu.refreshSortOrder", r.rect, "Refresh Sort Order");
+    let r = ui.button(lang.tr("Refresh Sort Order"));
+    app.auto.add("project.menu.refreshSortOrder", r.rect, lang.tr("Refresh Sort Order"));
     if r.clicked() {
         actions.push(("project.sort".into(), json!({"column": pp.view.sort.column, "descending": pp.view.sort.descending})));
         close = true;
     }
     ui.separator();
-    let r = ui.button("Metadata Display…");
-    app.auto.add("project.menu.metadataDisplay", r.rect, "Metadata Display…");
+    let r = ui.button(lang.tr("Metadata Display…"));
+    app.auto.add("project.menu.metadataDisplay", r.rect, lang.tr("Metadata Display…"));
     if r.clicked() {
         actions.push(("projectPanel.metadataDisplay".into(), json!({})));
         close = true;
     }
     let current = pp.current_preset.filter(|i| pp.presets.get(*i).is_some_and(Option::is_some));
-    let r = ui.add_enabled(current.is_some(), egui::Button::new("Save Current View Preset"));
-    app.auto.add("project.menu.saveViewPreset", r.rect, "Save Current View Preset");
+    let r = ui.add_enabled(current.is_some(), egui::Button::new(lang.tr("Save Current View Preset")));
+    app.auto.add("project.menu.saveViewPreset", r.rect, lang.tr("Save Current View Preset"));
     if r.clicked() {
         actions.push(("project.viewPreset.save".into(), json!({})));
         close = true;
     }
-    let r = ui.button("Save As New View Preset");
-    app.auto.add("project.menu.saveViewPresetAs", r.rect, "Save As New View Preset");
+    let r = ui.button(lang.tr("Save As New View Preset"));
+    app.auto.add("project.menu.saveViewPresetAs", r.rect, lang.tr("Save As New View Preset"));
     if r.clicked() {
         actions.push(("projectPanel.saveViewPresetAs".into(), json!({})));
         close = true;
     }
     let any = pp.presets.iter().any(Option::is_some);
     let rr = ui.add_enabled_ui(any, |ui| {
-        ui.menu_button("Restore View Preset", |ui| {
+        ui.menu_button(lang.tr("Restore View Preset"), |ui| {
             for (i, p) in pp.presets.iter().enumerate() {
-                let label = p.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| format!("Project View Preset {}", i + 1));
+                let label = p.as_ref().map(|p| p.name.clone()).unwrap_or_else(|| format!("{} {}", lang.tr("Project View Preset"), i + 1));
                 let r = ui.add_enabled(p.is_some(), egui::Button::selectable(pp.current_preset == Some(i), label.clone()));
                 app.auto.add(&format!("project.menu.restoreViewPreset.{}", i + 1), r.rect, &label);
                 if r.clicked() {
@@ -805,16 +815,16 @@ pub fn panel_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui) -> bool {
             }
         })
     });
-    app.auto.add("project.menu.restoreViewPreset", rr.response.rect, "Restore View Preset");
-    let r = ui.add_enabled(any, egui::Button::new("Manage Saved View Presets"));
-    app.auto.add("project.menu.manageViewPresets", r.rect, "Manage Saved View Presets");
+    app.auto.add("project.menu.restoreViewPreset", rr.response.rect, lang.tr("Restore View Preset"));
+    let r = ui.add_enabled(any, egui::Button::new(lang.tr("Manage Saved View Presets")));
+    app.auto.add("project.menu.manageViewPresets", r.rect, lang.tr("Manage Saved View Presets"));
     if r.clicked() {
         actions.push(("projectPanel.manageViewPresets".into(), json!({})));
         close = true;
     }
     ui.separator();
-    let r = ui.add_enabled(v.mode == ViewMode::Freeform, egui::Button::new("Freeform View Options…"));
-    app.auto.add("project.menu.freeformOptions", r.rect, "Freeform View Options…");
+    let r = ui.add_enabled(v.mode == ViewMode::Freeform, egui::Button::new(lang.tr("Freeform View Options…")));
+    app.auto.add("project.menu.freeformOptions", r.rect, lang.tr("Freeform View Options…"));
     if r.clicked() {
         actions.push(("projectPanel.freeformOptions".into(), json!({})));
         close = true;

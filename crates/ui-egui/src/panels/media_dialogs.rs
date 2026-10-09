@@ -161,12 +161,12 @@ fn link_media(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let accent = app.tokens.accent;
     let sel_path = d.candidate.and_then(|c| d.candidates.get(c)).map(|c| c.0.clone());
     let preview = sel_path.as_deref().and_then(|p| preview_texture(app, ctx, p));
-    egui::Window::new("Link Media").collapsible(false).resizable(false).default_width(760.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Link Media")).collapsible(false).resizable(false).default_width(760.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         ui.label(format!("{} clip(s) can't find their media. Locate them, search a folder, or leave them offline.", rows.len()));
         ui.add_space(6.0);
         egui::Grid::new("link-media-rows").num_columns(4).striped(true).spacing([14.0, 4.0]).show(ui, |ui| {
             for h in ["Clip Name", "File Name", "File Path", "Status"] {
-                ui.label(RichText::new(h).strong());
+                ui.label(RichText::new(app.tr(h)).strong());
             }
             ui.end_row();
             for (k, (_, name, fname, path, status)) in rows.iter().enumerate() {
@@ -185,7 +185,7 @@ fn link_media(app: &mut FilmcraftApp, ctx: &egui::Context) {
         });
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Match file properties:");
+            ui.label(app.tr("Match file properties:"));
             for (id, label, v) in [
                 ("fileName", "File Name", &mut d.file_name),
                 ("extension", "File Extension", &mut d.extension),
@@ -194,29 +194,29 @@ fn link_media(app: &mut FilmcraftApp, ctx: &egui::Context) {
                 ("mediaStart", "Media Start", &mut d.media_start),
                 ("metadata", "Frame Size / Rate", &mut d.metadata),
             ] {
-                let r = ui.checkbox(v, label);
+                let r = ui.checkbox(v, app.tr(label));
                 push(&mut elems, format!("linkMedia.match.{id}"), &r, label);
             }
         });
         ui.horizontal(|ui| {
-            let r = ui.checkbox(&mut d.align_timecode, "Align Timecode");
+            let r = ui.checkbox(&mut d.align_timecode, app.tr("Align Timecode"));
             push(&mut elems, "linkMedia.alignTimecode", &r, "Align Timecode");
-            let r = ui.checkbox(&mut d.relink_others, "Relink others automatically");
+            let r = ui.checkbox(&mut d.relink_others, app.tr("Relink others automatically"));
             push(&mut elems, "linkMedia.relinkOthers", &r, "Relink others automatically");
         });
         ui.separator();
         ui.horizontal(|ui| {
-            ui.label("Search in:");
+            ui.label(app.tr("Search in:"));
             let r = ui.add(egui::TextEdit::singleline(&mut d.folder).desired_width(360.0).hint_text("folder"));
             push(&mut elems, "linkMedia.folder", &r, "folder");
-            let r = ui.button("Browse…");
+            let r = ui.button(app.tr("Browse…"));
             push(&mut elems, "linkMedia.browse", &r, "Browse…");
             if r.clicked() {
                 action = Some("browse");
             }
-            let r = ui.checkbox(&mut d.exact_name, "Exact name matches only");
+            let r = ui.checkbox(&mut d.exact_name, app.tr("Exact name matches only"));
             push(&mut elems, "linkMedia.exactName", &r, "Exact name matches only");
-            let r = ui.button("Search");
+            let r = ui.button(app.tr("Search"));
             push(&mut elems, "linkMedia.search", &r, "Search");
             if r.clicked() {
                 action = Some("search");
@@ -266,13 +266,13 @@ fn link_media(app: &mut FilmcraftApp, ctx: &egui::Context) {
         ui.add_space(6.0);
         ui.horizontal(|ui| {
             for (id, label) in [("offlineAll", "Offline All"), ("offline", "Offline"), ("cancel", "Cancel"), ("locate", "Locate…")] {
-                let r = ui.button(label);
+                let r = ui.button(app.tr(label));
                 push(&mut elems, format!("linkMedia.{id}"), &r, label);
                 if r.clicked() {
                     action = Some(id);
                 }
             }
-            let r = ui.add_enabled(d.candidate.is_some(), egui::Button::new(RichText::new("Link").color(Color32::WHITE)).fill(accent));
+            let r = ui.add_enabled(d.candidate.is_some(), egui::Button::new(RichText::new(app.tr("Link")).color(Color32::WHITE)).fill(accent));
             push(&mut elems, "linkMedia.link", &r, "Link");
             if r.clicked() {
                 action = Some("link");
@@ -373,23 +373,23 @@ fn make_offline(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut keep = true;
     let mut ok = false;
     let n = app.session.state.project_selection.len();
-    egui::Window::new("Make Offline").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Make Offline")).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         ui.label(format!("Make {n} selected clip(s) offline. Their clips show the offline slate until you link them again."));
-        let r = ui.radio(!delete, "Media files remain on disk");
+        let r = ui.radio(!delete, app.tr("Media files remain on disk"));
         push(&mut elems, "makeOffline.keep", &r, "Media files remain on disk");
         if r.clicked() {
             delete = false;
         }
-        let r = ui.radio(delete, "Media files are deleted");
+        let r = ui.radio(delete, app.tr("Media files are deleted"));
         push(&mut elems, "makeOffline.delete", &r, "Media files are deleted");
         if r.clicked() {
             delete = true;
         }
         ui.horizontal(|ui| {
-            let r = ui.button("Cancel");
+            let r = ui.button(app.tr("Cancel"));
             push(&mut elems, "makeOffline.cancel", &r, "Cancel");
             keep &= !r.clicked();
-            let r = ui.button("OK");
+            let r = ui.button(app.tr("OK"));
             push(&mut elems, "makeOffline.ok", &r, "OK");
             ok = r.clicked();
         });
@@ -412,32 +412,32 @@ fn create_proxies(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut keep = true;
     let mut ok = false;
     let mut browse = false;
-    egui::Window::new("Create Proxies").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Create Proxies")).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         ui.label(format!("{} clip(s) selected.", d.items.len()));
         ui.add_space(4.0);
-        ui.label(RichText::new("Format and size").strong());
+        ui.label(RichText::new(app.tr("Format and size")).strong());
         for p in filmcraft_engine::proxies::PRESETS.iter().filter(|p| p.proxy) {
-            let r = ui.radio(d.preset == p.id, p.label);
+            let r = ui.radio(d.preset == p.id, app.tr(p.label));
             push(&mut elems, format!("proxies.preset.{}", p.id), &r, p.label);
             if r.clicked() {
                 d.preset = p.id.into();
             }
         }
         ui.add_space(4.0);
-        ui.label(RichText::new("Destination").strong());
+        ui.label(RichText::new(app.tr("Destination")).strong());
         ui.horizontal(|ui| {
             let r = ui.add(egui::TextEdit::singleline(&mut d.destination).desired_width(320.0).hint_text("Next to the original media, in a Proxies folder"));
             push(&mut elems, "proxies.destination", &r, "destination");
-            let r = ui.button("Browse…");
+            let r = ui.button(app.tr("Browse…"));
             push(&mut elems, "proxies.browse", &r, "Browse…");
             browse = r.clicked();
         });
         ui.label(RichText::new("Proxies are made in the background and attached when done. Export always uses full-resolution media.").weak());
         ui.horizontal(|ui| {
-            let r = ui.button("Cancel");
+            let r = ui.button(app.tr("Cancel"));
             push(&mut elems, "proxies.cancel", &r, "Cancel");
             keep &= !r.clicked();
-            let r = ui.add(egui::Button::new(RichText::new("OK").color(Color32::WHITE)).fill(app.tokens.accent));
+            let r = ui.add(egui::Button::new(RichText::new(app.tr("OK")).color(Color32::WHITE)).fill(app.tokens.accent));
             push(&mut elems, "proxies.ok", &r, "OK");
             ok = r.clicked();
         });
@@ -480,8 +480,8 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut keep = true;
     let (mut ok, mut calc, mut browse) = (false, false, false);
     let seqs: Vec<(u64, String)> = app.session.project.sequences().map(|i| (i.id.0, i.name.clone())).collect();
-    egui::Window::new("Project Manager").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
-        ui.label(RichText::new("Sequences").strong());
+    egui::Window::new(app.tr("Project Manager")).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+        ui.label(RichText::new(app.tr("Sequences")).strong());
         for (id, name) in &seqs {
             let mut on = d.sequences.contains(id);
             let r = ui.checkbox(&mut on, name);
@@ -495,9 +495,9 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
             }
         }
         ui.separator();
-        ui.label(RichText::new("Resulting Project").strong());
+        ui.label(RichText::new(app.tr("Resulting Project")).strong());
         for (id, label) in [("collect", "Collect Files and Copy to New Location"), ("consolidate", "Consolidate and Transcode")] {
-            let r = ui.radio(d.mode == id, label);
+            let r = ui.radio(d.mode == id, app.tr(label));
             push(&mut elems, format!("pm.mode.{id}"), &r, label);
             if r.clicked() {
                 d.mode = id.into();
@@ -506,7 +506,7 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
         if d.mode == "consolidate" {
             ui.indent("pm-presets", |ui| {
                 for p in filmcraft_engine::proxies::PRESETS.iter().filter(|p| !p.proxy) {
-                    let r = ui.radio(d.preset == p.id, p.label);
+                    let r = ui.radio(d.preset == p.id, app.tr(p.label));
                     push(&mut elems, format!("pm.preset.{}", p.id), &r, p.label);
                     if r.clicked() {
                         d.preset = p.id.into();
@@ -515,28 +515,28 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
             });
         }
         ui.separator();
-        ui.label(RichText::new("Options").strong());
-        let r = ui.checkbox(&mut d.exclude_unused, "Exclude Unused Clips");
+        ui.label(RichText::new(app.tr("Options")).strong());
+        let r = ui.checkbox(&mut d.exclude_unused, app.tr("Exclude Unused Clips"));
         push(&mut elems, "pm.excludeUnused", &r, "Exclude Unused Clips");
         ui.horizontal(|ui| {
             ui.add_enabled_ui(d.mode == "consolidate", |ui| {
-                ui.label("Include Handles:");
+                ui.label(app.tr("Include Handles:"));
                 let r = ui.add(egui::DragValue::new(&mut d.handles).range(0..=600).suffix(" frames"));
                 push(&mut elems, "pm.handles", &r, format!("{} frames", d.handles));
             });
         });
         ui.add_enabled_ui(d.mode == "collect", |ui| {
-            let r = ui.checkbox(&mut d.include_proxies, "Include Proxies");
+            let r = ui.checkbox(&mut d.include_proxies, app.tr("Include Proxies"));
             push(&mut elems, "pm.includeProxies", &r, "Include Proxies");
         });
-        let r = ui.checkbox(&mut d.include_previews, "Include Preview Files");
+        let r = ui.checkbox(&mut d.include_previews, app.tr("Include Preview Files"));
         push(&mut elems, "pm.includePreviews", &r, "Include Preview Files");
         ui.separator();
-        ui.label(RichText::new("Destination Path").strong());
+        ui.label(RichText::new(app.tr("Destination Path")).strong());
         ui.horizontal(|ui| {
             let r = ui.add(egui::TextEdit::singleline(&mut d.destination).desired_width(360.0));
             push(&mut elems, "pm.destination", &r, "destination");
-            let r = ui.button("Browse…");
+            let r = ui.button(app.tr("Browse…"));
             push(&mut elems, "pm.browse", &r, "Browse…");
             browse = r.clicked();
         });
@@ -547,7 +547,7 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
             };
             let r = ui.label(&text);
             push(&mut elems, "pm.sizes", &r, text);
-            let r = ui.button("Calculate");
+            let r = ui.button(app.tr("Calculate"));
             push(&mut elems, "pm.calculate", &r, "Calculate");
             calc = r.clicked();
         });
@@ -555,12 +555,12 @@ fn project_manager(app: &mut FilmcraftApp, ctx: &egui::Context) {
             ui.colored_label(Color32::from_rgb(0xe0, 0x8a, 0x6a), &d.message);
         }
         ui.horizontal(|ui| {
-            let r = ui.button("Cancel");
+            let r = ui.button(app.tr("Cancel"));
             push(&mut elems, "pm.cancel", &r, "Cancel");
             keep &= !r.clicked();
             let r = ui.add_enabled(
                 !d.destination.is_empty() && !d.sequences.is_empty(),
-                egui::Button::new(RichText::new("OK").color(Color32::WHITE)).fill(app.tokens.accent),
+                egui::Button::new(RichText::new(app.tr("OK")).color(Color32::WHITE)).fill(app.tokens.accent),
             );
             push(&mut elems, "pm.ok", &r, "OK");
             ok = r.clicked();

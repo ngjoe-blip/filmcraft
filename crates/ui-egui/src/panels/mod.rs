@@ -198,41 +198,43 @@ pub fn panel_menu_popup(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
             // the Timeline's tabs are its open sequences: Close Panel closes the active one and
             // keeps the panel (Premiere's wording and behaviour)
             if p == PanelKind::Timeline && app.session.state.active_sequence.is_some() {
-                let r = ui.button("Close Panel");
+                let r = ui.button(app.tr("Close Panel"));
                 app.auto.add("panel.menu.Timeline.close", r.rect, "Close Panel");
                 if r.clicked() {
                     let _ = app.session.execute("sequence.close", serde_json::json!({}));
                     close = true;
                 }
-                let r = ui.add_enabled(app.session.state.open_sequences.len() > 1, egui::Button::new("Close Other Timeline Panels"));
+                let r = ui.add_enabled(app.session.state.open_sequences.len() > 1, egui::Button::new(app.tr("Close Other Timeline Panels")));
                 app.auto.add("panel.menu.Timeline.closeOthers", r.rect, "Close Other Timeline Panels");
                 if r.clicked() {
                     let _ = app.session.execute("sequence.closeOthers", serde_json::json!({}));
                     close = true;
                 }
-            } else if ui.button("Close Panel").clicked() {
+            } else if ui.button(app.tr("Close Panel")).clicked() {
                 app.ui.dock.close(p);
                 close = true;
             }
-            if ui.button("Maximize Frame").clicked() {
+            if ui.button(app.tr("Maximize Frame")).clicked() {
                 app.ui.dock = crate::dock::DockNode::Tabs { panels: vec![p], active: 0 };
                 close = true;
             }
-            if ui.button("Restore Workspace").clicked() {
+            if ui.button(app.tr("Restore Workspace")).clicked() {
                 let w = app.ui.workspace.clone();
                 app.set_workspace(&w);
                 close = true;
             }
             if p == PanelKind::Timeline {
                 ui.separator();
-                let r = ui.add_enabled(app.session.state.active_sequence.is_some(), egui::Button::new("Reveal Sequence in Project"));
+                let r = ui.add_enabled(app.session.state.active_sequence.is_some(), egui::Button::new(app.tr("Reveal Sequence in Project")));
                 app.auto.add("panel.menu.Timeline.revealSequence", r.rect, "Reveal Sequence in Project");
                 if r.clicked() {
                     let _ = app.session.execute("sequence.revealInProject", serde_json::json!({}));
                     close = true;
                 }
-                ui.checkbox(&mut app.ui.timeline.show_thumbnails, "Video Thumbnails");
-                ui.checkbox(&mut app.ui.timeline.show_waveforms, "Audio Waveforms");
+                let show_thumbs = app.tr("Video Thumbnails");
+                let show_waves = app.tr("Audio Waveforms");
+                ui.checkbox(&mut app.ui.timeline.show_thumbnails, show_thumbs);
+                ui.checkbox(&mut app.ui.timeline.show_waveforms, show_waves);
             }
             if p == PanelKind::Project {
                 ui.separator();

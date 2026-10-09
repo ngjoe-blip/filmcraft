@@ -9,11 +9,11 @@ use crate::theme::Tokens;
 pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let t = app.tokens;
     ui.painter().rect_filled(rect, t.radius, t.panel_bg);
-    ui.painter().text(rect.min + vec2(24.0, 30.0), Align2::LEFT_CENTER, "Import", Tokens::semibold(22.0), t.text);
+    ui.painter().text(rect.min + vec2(24.0, 30.0), Align2::LEFT_CENTER, app.tr("Import"), Tokens::semibold(22.0), t.text);
     ui.painter().text(
         rect.min + vec2(24.0, 58.0),
         Align2::LEFT_CENTER,
-        "Add media to your project. Drop files anywhere in the window, or choose a source below.",
+        app.tr("Add media to your project. Drop files anywhere in the window, or choose a source below."),
         Tokens::ui(13.0),
         t.text_dim,
     );
@@ -30,8 +30,8 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         let resp = ui.interact(r, egui::Id::new(("imp", *cmd)), Sense::click());
         app.auto.add(&format!("import.{cmd}"), r, title);
         ui.painter().rect_filled(r, 8.0, if resp.hovered() { t.hover } else { t.tl_header_bg });
-        ui.painter().text(r.min + vec2(16.0, 110.0), Align2::LEFT_CENTER, *title, Tokens::semibold(14.0), t.text);
-        ui.painter().text(r.min + vec2(16.0, 132.0), Align2::LEFT_CENTER, *sub, Tokens::ui(11.5), t.text_dim);
+        ui.painter().text(r.min + vec2(16.0, 110.0), Align2::LEFT_CENTER, app.tr(*title), Tokens::semibold(14.0), t.text);
+        ui.painter().text(r.min + vec2(16.0, 132.0), Align2::LEFT_CENTER, app.tr(*sub), Tokens::ui(11.5), t.text_dim);
         crate::icons::paint(
             ui.painter(),
             Rect::from_min_size(r.min + vec2(16.0, 18.0), vec2(56.0, 56.0)),
@@ -48,11 +48,11 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     // ArtCraft wordmark (first-party trademark, docs/brand/), then the section title.
     let logo = crate::brand::paint_wordmark(ui, rect.min + vec2(24.0, y), 15.0, app.ui.dark);
     let tx = logo.map_or(rect.min.x + 24.0, |r| r.max.x + 12.0);
-    ui.painter().text(pos2(tx, rect.min.y + y), Align2::LEFT_CENTER, "Community", Tokens::semibold(15.0), t.text);
+    ui.painter().text(pos2(tx, rect.min.y + y), Align2::LEFT_CENTER, app.tr("Community"), Tokens::semibold(15.0), t.text);
     let mut x = rect.min.x + 24.0;
     for (i, (id, label, url)) in crate::links::ALL.iter().take(4).enumerate() {
         let primary = i == 0;
-        let label = if primary { "Join us on Discord" } else { *label };
+        let label = if primary { app.tr("Join us on Discord") } else { app.tr(*label) };
         let g = ui.painter().layout_no_wrap(label.to_string(), Tokens::ui(13.0), t.text);
         let r = Rect::from_min_size(pos2(x, rect.min.y + y + 18.0), vec2(g.size().x + 44.0, 34.0));
         let resp = ui.interact(r, egui::Id::new(("imp-link", *id)), Sense::click()).on_hover_text(*url);

@@ -222,7 +222,7 @@ fn format_of(name: &str) -> AudioChannels {
 
 fn check(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &str, label: &str, enabled: bool) {
     let mut v = p.get(key).and_then(Value::as_bool).unwrap_or(false);
-    let r = ui.add_enabled(enabled, egui::Checkbox::new(&mut v, label));
+    let r = ui.add_enabled(enabled, egui::Checkbox::new(&mut v, crate::i18n::tr_ctx(ui.ctx(), label)));
     push(elems, format!("{pre}.{key}"), &r, label);
     if r.changed() {
         p[key] = json!(v);
@@ -231,7 +231,7 @@ fn check(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &s
 
 fn text(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &str, label: &str, width: f32) {
     ui.horizontal(|ui| {
-        ui.label(label);
+        ui.label(crate::i18n::tr_ctx(ui.ctx(), label));
         let mut v = p.get(key).and_then(Value::as_str).unwrap_or_default().to_string();
         let r = ui.add(egui::TextEdit::singleline(&mut v).desired_width(width));
         push(elems, format!("{pre}.{key}"), &r, label);
@@ -243,7 +243,7 @@ fn text(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &st
 
 fn number(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &str, label: &str, range: std::ops::RangeInclusive<f64>, suffix: &str) {
     ui.horizontal(|ui| {
-        ui.label(label);
+        ui.label(crate::i18n::tr_ctx(ui.ctx(), label));
         let mut v = p.get(key).and_then(Value::as_f64).unwrap_or(0.0);
         let r = ui.add(egui::DragValue::new(&mut v).range(range).suffix(suffix));
         push(elems, format!("{pre}.{key}"), &r, label);
@@ -255,7 +255,7 @@ fn number(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &
 
 fn frames(ui: &mut egui::Ui, elems: &mut Elems, pre: &str, p: &mut Value, key: &str, label: &str, fps: f64) {
     ui.horizontal(|ui| {
-        ui.label(label);
+        ui.label(crate::i18n::tr_ctx(ui.ctx(), label));
         let mut v = p.get(key).and_then(Value::as_i64).unwrap_or(0);
         let r = ui.add(egui::DragValue::new(&mut v).range(0..=i64::MAX / 4).suffix(" fr"));
         push(elems, format!("{pre}.{key}"), &r, label);
@@ -278,16 +278,16 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut action: Option<&'static str> = None;
     let project_name = app.session.project.name.clone();
     let can_save = app.session.path.is_some();
-    egui::Window::new(title).collapsible(false).resizable(false).default_width(360.0).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr(title)).collapsible(false).resizable(false).default_width(360.0).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         let p = &mut d.params;
         match d.command.as_str() {
             "edit.pasteAttributes" | "edit.removeAttributes" => {
                 let (v, a) = (d.info["video"].as_bool().unwrap_or(true), d.info["audio"].as_bool().unwrap_or(true));
-                ui.label(RichText::new("Video Attributes").strong());
+                ui.label(RichText::new(app.tr("Video Attributes")).strong());
                 for (k, l) in INTRINSIC_VIDEO {
                     check(ui, &mut elems, pre, p, k, l, v);
                 }
-                ui.label(RichText::new("Audio Attributes").strong());
+                ui.label(RichText::new(app.tr("Audio Attributes")).strong());
                 for (k, l) in INTRINSIC_AUDIO {
                     check(ui, &mut elems, pre, p, k, l, a);
                 }
@@ -295,9 +295,9 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                     .as_array()
                     .map(|x| x.iter().filter_map(|e| Some((e[0].as_str()?.to_string(), e[1].as_str()?.to_string()))).collect())
                     .unwrap_or_default();
-                ui.label(RichText::new("Effects").strong());
+                ui.label(RichText::new(app.tr("Effects")).strong());
                 if effects.is_empty() {
-                    ui.label(RichText::new("No effects").weak());
+                    ui.label(RichText::new(app.tr("No effects")).weak());
                 }
                 for (id, name) in &effects {
                     let mut on = p["effects"].as_array().is_some_and(|x| x.iter().any(|e| e.as_str() == Some(id)));
@@ -323,7 +323,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                 text(ui, &mut elems, pre, p, "tapeName", "Tape Name:", 220.0);
                 text(ui, &mut elems, pre, p, "description", "Description:", 220.0);
                 ui.horizontal(|ui| {
-                    ui.label("Contains:");
+                    ui.label(app.tr("Contains:"));
                     check(ui, &mut elems, pre, p, "video", "Video", true);
                     check(ui, &mut elems, pre, p, "audio", "Audio", true);
                 });
@@ -375,9 +375,9 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                 let n = d.info["channels"].as_u64().unwrap_or(2).max(1) as u16;
                 if d.info["items"].as_bool().unwrap_or(false) {
                     ui.horizontal(|ui| {
-                        ui.label("Clip Channel Format:");
+                        ui.label(app.tr("Clip Channel Format:"));
                         for (k, l) in FORMATS {
-                            let r = ui.radio(p["format"].as_str() == Some(k), l);
+                            let r = ui.radio(p["format"].as_str() == Some(k), app.tr(l));
                             push(&mut elems, format!("{pre}.format.{k}"), &r, l);
                             if r.clicked() {
                                 p["format"] = json!(k);
@@ -387,7 +387,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                     });
                     let mut clips: Vec<Vec<u16>> = serde_json::from_value(p["clips"].clone()).unwrap_or_default();
                     ui.horizontal(|ui| {
-                        ui.label("Number of Audio Clips:");
+                        ui.label(app.tr("Number of Audio Clips:"));
                         let mut count = clips.len() as u32;
                         let r = ui.add(egui::DragValue::new(&mut count).range(1..=n as u32));
                         push(&mut elems, format!("{pre}.count"), &r, "Number of Audio Clips");
@@ -400,7 +400,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                             clips.truncate(count);
                         }
                     });
-                    ui.label(RichText::new("Media Source Channels").strong());
+                    ui.label(RichText::new(app.tr("Media Source Channels")).strong());
                     egui::Grid::new("audio-channel-matrix").striped(true).show(ui, |ui| {
                         ui.label("");
                         for c in 0..n {
@@ -427,7 +427,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                     });
                     p["clips"] = json!(clips);
                 } else {
-                    ui.label("Source channels the selected audio clips play:");
+                    ui.label(app.tr("Source channels the selected audio clips play:"));
                     let mut chans: Vec<u16> = serde_json::from_value(p["channels"].clone()).unwrap_or_default();
                     ui.horizontal(|ui| {
                         for c in 0..n.max(2) {
@@ -471,9 +471,9 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
             }
             "clip.fieldOptions" => {
                 check(ui, &mut elems, pre, p, "reverseFieldDominance", "Reverse Field Dominance", true);
-                ui.label(RichText::new("Processing Options").strong());
+                ui.label(RichText::new(app.tr("Processing Options")).strong());
                 for (k, l) in [("none", "None"), ("alwaysDeinterlace", "Always Deinterlace"), ("flickerRemoval", "Flicker Removal")] {
-                    let r = ui.radio(p["processing"].as_str() == Some(k), l);
+                    let r = ui.radio(p["processing"].as_str() == Some(k), app.tr(l));
                     push(&mut elems, format!("{pre}.processing.{k}"), &r, l);
                     if r.clicked() {
                         p["processing"] = json!(k);
@@ -490,15 +490,15 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                     let rate = filmcraft_time::FrameRate::from_f64(if fps > 0.0 { fps } else { 24.0 });
                     let ticks = filmcraft_time::Tick((dur as f64 * was / now).round() as i64);
                     ui.horizontal(|ui| {
-                        ui.label("Duration:");
+                        ui.label(app.tr("Duration:"));
                         ui.label(RichText::new(filmcraft_time::format_timecode_frames(rate.frame_at(ticks), rate, false)).monospace());
                     });
                 }
                 check(ui, &mut elems, pre, p, "reverse", "Reverse Speed", true);
                 check(ui, &mut elems, pre, p, "ripple", "Ripple Edit, Shifting Trailing Clips", true);
-                ui.label(RichText::new("Time Interpolation").strong());
+                ui.label(RichText::new(app.tr("Time Interpolation")).strong());
                 for m in filmcraft_project::TimeInterpolation::ALL {
-                    let r = ui.radio(p["interpolation"].as_str() == Some(m.name()), m.label());
+                    let r = ui.radio(p["interpolation"].as_str() == Some(m.name()), app.tr(m.label()));
                     push(&mut elems, format!("{pre}.interpolation.{}", m.name()), &r, m.label());
                     if r.clicked() {
                         p["interpolation"] = json!(m.name());
@@ -506,20 +506,20 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
                 }
             }
             "file.closeProject" => {
-                ui.label(format!("Save changes to “{project_name}” before closing?"));
+                ui.label(format!("{} “{project_name}” {}?", app.tr("Save changes to"), app.tr("before closing")));
                 ui.add_space(8.0);
                 ui.horizontal(|ui| {
-                    let r = ui.button("Cancel");
+                    let r = ui.button(app.tr("Cancel"));
                     push(&mut elems, format!("{pre}.cancel"), &r, "Cancel");
                     if r.clicked() {
                         action = Some("cancel");
                     }
-                    let r = ui.button("Don't Save");
+                    let r = ui.button(app.tr("Don't Save"));
                     push(&mut elems, format!("{pre}.dontSave"), &r, "Don't Save");
                     if r.clicked() {
                         action = Some("dontSave");
                     }
-                    let r = ui.add_enabled(can_save, egui::Button::new("Save"));
+                    let r = ui.add_enabled(can_save, egui::Button::new(app.tr("Save")));
                     push(&mut elems, format!("{pre}.save"), &r, "Save");
                     if r.clicked() {
                         action = Some("save");
@@ -534,12 +534,12 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
         }
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            let r = ui.button("Cancel");
+            let r = ui.button(app.tr("Cancel"));
             push(&mut elems, format!("{pre}.cancel"), &r, "Cancel");
             if r.clicked() {
                 action = Some("cancel");
             }
-            let r = ui.button("OK");
+            let r = ui.button(app.tr("OK"));
             push(&mut elems, format!("{pre}.ok"), &r, "OK");
             if r.clicked() {
                 action = Some("ok");

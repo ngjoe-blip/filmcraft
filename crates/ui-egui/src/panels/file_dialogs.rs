@@ -22,14 +22,15 @@ fn modal_frame(t: &Tokens) -> Frame {
 
 fn button(app: &mut FilmcraftApp, ui: &mut Ui, id: &str, label: &str, primary: bool) -> bool {
     let t = app.tokens;
-    let text = RichText::new(label).size(13.0).color(if primary { Color32::WHITE } else { t.text });
+    let label_tr = app.tr(label);
+    let text = RichText::new(label_tr).size(13.0).color(if primary { Color32::WHITE } else { t.text });
     let b = egui::Button::new(text)
         .min_size(vec2(88.0, 30.0))
         .corner_radius(CornerRadius::same(15))
         .fill(if primary { t.accent } else { Color32::TRANSPARENT })
         .stroke(if primary { Stroke::NONE } else { Stroke::new(1.5, t.text_faint) });
     let r = ui.add(b);
-    app.auto.add(id, r.rect, label);
+    app.auto.add(id, r.rect, label_tr);
     r.clicked()
 }
 
@@ -45,7 +46,7 @@ pub fn show_recovery(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     egui::Modal::new(egui::Id::new("recovery-modal")).frame(modal_frame(&t)).show(ctx, |ui| {
         ui.set_width(520.0);
         Frame::new().inner_margin(Margin { left: 28, right: 28, top: 24, bottom: 20 }).show(ui, |ui| {
-            ui.label(RichText::new("Recover Unsaved Changes").size(18.0).strong().color(t.text));
+            ui.label(RichText::new(app.tr("Recover Unsaved Changes")).size(18.0).strong().color(t.text));
             ui.add_space(6.0);
             ui.separator();
             ui.add_space(6.0);
@@ -53,21 +54,40 @@ pub fn show_recovery(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
             let name = c["projectName"].as_str().unwrap_or("Untitled");
             let when = c["savedAt"].as_str().unwrap_or("");
             let why = if c["cleanExit"].as_bool() == Some(true) {
-                format!("FilmCraft was closed while “{name}” had unsaved changes.")
+                if app.ui.language == crate::i18n::Language::ZhCn {
+                    format!("FilmCraft 关闭时，“{name}”有未保存的更改。")
+                } else {
+                    format!("FilmCraft was closed while “{name}” had unsaved changes.")
+                }
             } else {
-                format!("FilmCraft quit unexpectedly while “{name}” had unsaved changes.")
+                if app.ui.language == crate::i18n::Language::ZhCn {
+                    format!("FilmCraft 意外退出，当时“{name}”有未保存的更改。")
+                } else {
+                    format!("FilmCraft quit unexpectedly while “{name}” had unsaved changes.")
+                }
             };
             ui.label(RichText::new(why).size(13.5).color(t.text));
             ui.add_space(4.0);
-            ui.label(RichText::new(format!("Recover unsaved changes from {when}?")).size(13.5).color(t.text));
+            let prompt = if app.ui.language == crate::i18n::Language::ZhCn {
+                format!("是否恢复来自 {when} 的未保存更改？")
+            } else {
+                format!("Recover unsaved changes from {when}?")
+            };
+            ui.label(RichText::new(prompt).size(13.5).color(t.text));
             if let Some(p) = c["projectPath"].as_str() {
                 ui.label(RichText::new(p).size(11.5).color(t.text_dim));
             } else {
-                ui.label(RichText::new("The project had not been saved yet.").size(11.5).color(t.text_dim));
+                ui.label(RichText::new(app.tr("The project had not been saved yet.")).size(11.5).color(t.text_dim));
             }
             if items.len() > 1 {
                 ui.add_space(8.0);
-                ui.label(RichText::new(format!("{} sessions have unsaved changes:", items.len())).size(12.0).color(t.text_dim));
+                let count = items.len();
+                let multi = if app.ui.language == crate::i18n::Language::ZhCn {
+                    format!("{count} 个会话有未保存的更改：")
+                } else {
+                    format!("{count} sessions have unsaved changes:")
+                };
+                ui.label(RichText::new(multi).size(12.0).color(t.text_dim));
                 for (i, it) in items.iter().enumerate() {
                     let label = format!("{} — {}", it["projectName"].as_str().unwrap_or("Untitled"), it["savedAt"].as_str().unwrap_or(""));
                     let r = ui.radio(choice == i, RichText::new(&label).size(12.5));
@@ -111,11 +131,16 @@ pub fn show_revert(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     let r = egui::Modal::new(egui::Id::new("revert-modal")).frame(modal_frame(&t)).show(ctx, |ui| {
         ui.set_width(460.0);
         Frame::new().inner_margin(Margin { left: 28, right: 28, top: 24, bottom: 20 }).show(ui, |ui| {
-            ui.label(RichText::new("Revert").size(18.0).strong().color(t.text));
+            ui.label(RichText::new(app.tr("Revert")).size(18.0).strong().color(t.text));
             ui.add_space(6.0);
             ui.separator();
             ui.add_space(6.0);
-            ui.label(RichText::new(format!("Are you sure you want to discard your changes to '{file}'?")).size(13.5).color(t.text));
+            let prompt = if app.ui.language == crate::i18n::Language::ZhCn {
+                format!("确定要放弃对“{file}”的更改吗？")
+            } else {
+                format!("Are you sure you want to discard your changes to '{file}'?")
+            };
+            ui.label(RichText::new(prompt).size(13.5).color(t.text));
             ui.add_space(18.0);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if button(app, ui, "revert.yes", "Yes", true) {

@@ -102,18 +102,20 @@ fn prefs_persist_through_the_data_directory() {
     s.start_autosave(crate::autosave::AutosaveConfig::new(&dir)).unwrap();
     s.execute(
         "prefs.set",
-        json!({"values": {"timeline.stillImageDuration": 3, "appearance.colorTheme": "light", "labels.colors.rose.name": "Hero", "audioHardware.sampleRate": "96000"}}),
+        json!({"values": {"timeline.stillImageDuration": 3, "appearance.colorTheme": "light", "appearance.language": "zh-cn", "labels.colors.rose.name": "Hero", "audioHardware.sampleRate": "96000"}}),
     )
     .unwrap();
     s.shutdown();
     let file: Value = serde_json::from_slice(&std::fs::read(dir.join("preferences.json")).unwrap()).unwrap();
     assert_eq!(file["version"], settings::PREFS_VERSION);
     assert_eq!(file["timeline"]["stillImageDuration"], 3.0);
+    assert_eq!(file["appearance"]["language"], "zh-cn");
 
     let mut s2 = Session::default();
     s2.start_autosave(crate::autosave::AutosaveConfig::new(&dir)).unwrap();
     assert_eq!(s2.prefs.timeline.still_image_duration, 3.0);
     assert_eq!(s2.prefs.appearance.color_theme, "light");
+    assert_eq!(s2.prefs.appearance.language, "zh-cn");
     assert_eq!(s2.prefs.labels.name(Label::Rose), "Hero");
     assert_eq!(s2.prefs.audio_hardware.sample_rate, 96_000);
     let got = s2.execute("prefs.get", json!({"key": "labels.colors.rose.name"})).unwrap();

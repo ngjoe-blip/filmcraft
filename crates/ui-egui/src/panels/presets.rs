@@ -18,7 +18,7 @@ pub fn folder_rows(app: &mut FilmcraftApp, ui: &mut egui::Ui, filter: &str) -> O
     let t = app.tokens;
     let mut action = None;
     for p in app.session.presets.all() {
-        if !filter.is_empty() && !p.name.to_ascii_lowercase().contains(filter) {
+        if !filter.is_empty() && !p.name.to_ascii_lowercase().contains(filter) && !app.tr(&p.name).to_lowercase().contains(filter) {
             continue;
         }
         let (r, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 20.0), Sense::click_and_drag());
@@ -32,9 +32,9 @@ pub fn folder_rows(app: &mut FilmcraftApp, ui: &mut egui::Ui, filter: &str) -> O
             Icon::Sparkle,
             if p.builtin { t.text_dim } else { t.accent },
         );
-        ui.painter().text(pos2(x + 12.0, r.center().y), Align2::LEFT_CENTER, &p.name, Tokens::ui(12.0), t.text);
+        ui.painter().text(pos2(x + 12.0, r.center().y), Align2::LEFT_CENTER, app.tr(&p.name), Tokens::ui(12.0), t.text);
         app.auto.add(&format!("effects.preset.{}", p.name), r, &p.name);
-        let tip = if p.description.is_empty() { p.name.clone() } else { p.description.clone() };
+        let tip = if p.description.is_empty() { app.tr(&p.name).to_string() } else { app.tr(&p.description).to_string() };
         let resp = resp.on_hover_text(tip);
         if resp.drag_started() {
             crate::panels::start_drag_effect(ui, &format!("preset:{}", p.name));
@@ -42,16 +42,19 @@ pub fn folder_rows(app: &mut FilmcraftApp, ui: &mut egui::Ui, filter: &str) -> O
         if resp.double_clicked() {
             action = Some(("presets.apply".to_string(), p.name.clone()));
         }
+        let btn_delete = app.tr("Delete Preset");
+        let btn_export = app.tr("Export Preset…");
+        let btn_import = app.tr("Import Presets…");
         resp.context_menu(|ui| {
-            if !p.builtin && ui.button("Delete Preset").clicked() {
+            if !p.builtin && ui.button(btn_delete).clicked() {
                 action = Some(("presets.delete".to_string(), p.name.clone()));
                 ui.close();
             }
-            if ui.button("Export Preset…").clicked() {
+            if ui.button(btn_export).clicked() {
                 action = Some(("presets.export".to_string(), p.name.clone()));
                 ui.close();
             }
-            if ui.button("Import Presets…").clicked() {
+            if ui.button(btn_import).clicked() {
                 action = Some(("presets.import".to_string(), String::new()));
                 ui.close();
             }
@@ -90,15 +93,27 @@ pub fn save_dialog(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut open = true;
     let mut close = false;
     let mut apply = false;
-    egui::Window::new("Save Preset").open(&mut open).collapsible(false).resizable(false).default_width(340.0).show(ctx, |ui| {
+    let win_title = app.tr("Save Preset");
+    let lbl_name = app.tr("Name:");
+    let lbl_type = app.tr("Type");
+    let lbl_desc = app.tr("Description:");
+    let btn_cancel = app.tr("Cancel");
+    let btn_ok = app.tr("OK");
+    let kf_options = [
+        ("scale", app.tr("Scale")),
+        ("anchorIn", app.tr("Anchor to In Point")),
+        ("anchorOut", app.tr("Anchor to Out Point")),
+        ("none", app.tr("Without keyframes")),
+    ];
+    egui::Window::new(win_title).open(&mut open).collapsible(false).resizable(false).default_width(340.0).show(ctx, |ui| {
         ui.horizontal(|ui| {
-            ui.label("Name:");
+            ui.label(lbl_name);
             let r = ui.text_edit_singleline(&mut d.name);
             app.auto.add("savePreset.name", r.rect, "Name");
         });
         ui.add_space(4.0);
-        ui.label(egui::RichText::new("Type").strong());
-        for (key, label) in [("scale", "Scale"), ("anchorIn", "Anchor to In Point"), ("anchorOut", "Anchor to Out Point"), ("none", "Without keyframes")] {
+        ui.label(egui::RichText::new(lbl_type).strong());
+        for (key, label) in kf_options {
             let r = ui.radio(d.keyframes == key, label);
             app.auto.add(&format!("savePreset.keyframes.{key}"), r.rect, label);
             if r.clicked() {
@@ -106,14 +121,14 @@ pub fn save_dialog(app: &mut FilmcraftApp, ctx: &egui::Context) {
             }
         }
         ui.add_space(4.0);
-        ui.label("Description:");
+        ui.label(lbl_desc);
         let r = ui.text_edit_multiline(&mut d.description);
         app.auto.add("savePreset.description", r.rect, "Description");
         ui.add_space(6.0);
         ui.horizontal(|ui| {
-            let c = ui.button("Cancel");
+            let c = ui.button(btn_cancel);
             app.auto.add("savePreset.cancel", c.rect, "Cancel");
-            let o = ui.add_enabled(!d.name.trim().is_empty(), egui::Button::new("OK"));
+            let o = ui.add_enabled(!d.name.trim().is_empty(), egui::Button::new(btn_ok));
             app.auto.add("savePreset.ok", o.rect, "OK");
             apply = o.clicked();
             close = apply || c.clicked();

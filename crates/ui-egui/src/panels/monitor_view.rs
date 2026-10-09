@@ -613,17 +613,18 @@ pub fn compare_bar(app: &mut FilmcraftApp, ui: &mut egui::Ui, bar: Rect, rate: f
     let t = app.tokens;
     let rf = Tick(app.ui.program.compare_ref.unwrap_or(app.session.playhead().0));
     let tc = format_time(rf, rate, drop_frame, TimeDisplay::Timecode, 48000);
-    ui.painter().text(pos2(bar.min.x + 4.0, bar.center().y), Align2::LEFT_CENTER, format!("Reference  {tc}"), Tokens::ui(11.0), t.text_dim);
+    ui.painter().text(pos2(bar.min.x + 4.0, bar.center().y), Align2::LEFT_CENTER, format!("{}  {tc}", app.tr("Reference")), Tokens::ui(11.0), t.text_dim);
     let mut x = bar.max.x;
     for (key, label, tip) in
         [("set", "Set", "Set the reference to the playhead"), ("next", "▶", "Reference: next frame"), ("prev", "◀", "Reference: previous frame")]
     {
         let r = Rect::from_min_max(pos2(x - 34.0, bar.min.y + 1.0), pos2(x - 2.0, bar.max.y - 1.0));
         x -= 34.0;
-        let resp = ui.interact(r, egui::Id::new(("compare", key)), Sense::click()).on_hover_text(tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(("compare", key)), Sense::click()).on_hover_text(tr_tip);
         ui.painter().rect_filled(r, 3.0, if resp.hovered() { t.hover } else { t.field_bg });
-        ui.painter().text(r.center(), Align2::CENTER_CENTER, label, Tokens::ui(10.0), t.text);
-        app.auto.add(&format!("program.compare.{key}"), r, tip);
+        ui.painter().text(r.center(), Align2::CENTER_CENTER, app.tr(label), Tokens::ui(10.0), t.text);
+        app.auto.add(&format!("program.compare.{key}"), r, tr_tip);
         if resp.clicked() {
             let nt = match key {
                 "set" => app.session.playhead(),
@@ -647,45 +648,45 @@ pub fn wrench_items(app: &mut FilmcraftApp, ui: &mut egui::Ui, w: Which) {
     let v = view(app, w).clone();
     let mode = v.display_mode();
     let mut out: Picks = Vec::new();
-    pick(ui, &mut out, "display.composite", "Composite Video", mode == Some(DisplayMode::Composite));
-    ui.menu_button("RGBA Channels", |ui| {
+    pick(ui, &mut out, "display.composite", app.tr("Composite Video"), mode == Some(DisplayMode::Composite));
+    ui.menu_button(app.tr("RGBA Channels"), |ui| {
         for (k, l, m) in [
             ("alpha", "Alpha", DisplayMode::Alpha),
             ("red", "Red", DisplayMode::Red),
             ("green", "Green", DisplayMode::Green),
             ("blue", "Blue", DisplayMode::Blue),
         ] {
-            pick(ui, &mut out, &format!("display.{k}"), l, mode == Some(m));
+            pick(ui, &mut out, &format!("display.{k}"), app.tr(l), mode == Some(m));
         }
     });
     if w == Which::Program {
-        pick(ui, &mut out, "display.multicam", "Multi-Camera", v.multicam);
-        pick(ui, &mut out, "display.comparison", "Comparison View", mode == Some(DisplayMode::Comparison));
+        pick(ui, &mut out, "display.multicam", app.tr("Multi-Camera"), v.multicam);
+        pick(ui, &mut out, "display.comparison", app.tr("Comparison View"), mode == Some(DisplayMode::Comparison));
     } else {
-        pick(ui, &mut out, "display.audioWaveform", "Audio Waveform", mode == Some(DisplayMode::AudioWaveform));
-        pick(ui, &mut out, "display.videoAndWaveform", "Video and Audio Waveform Split", mode == Some(DisplayMode::VideoAndWaveform));
+        pick(ui, &mut out, "display.audioWaveform", app.tr("Audio Waveform"), mode == Some(DisplayMode::AudioWaveform));
+        pick(ui, &mut out, "display.videoAndWaveform", app.tr("Video and Audio Waveform Split"), mode == Some(DisplayMode::VideoAndWaveform));
     }
     ui.separator();
-    ui.menu_button("Playback Resolution", |ui| {
+    ui.menu_button(app.tr("Playback Resolution"), |ui| {
         for (k, r) in RES_NAMES {
-            pick(ui, &mut out, &format!("playbackRes.{k}"), r.label(), v.res == r);
+            pick(ui, &mut out, &format!("playbackRes.{k}"), app.tr(r.label()), v.res == r);
         }
     });
-    ui.menu_button("Paused Resolution", |ui| {
+    ui.menu_button(app.tr("Paused Resolution"), |ui| {
         for (k, r) in RES_NAMES {
-            pick(ui, &mut out, &format!("pausedRes.{k}"), r.label(), v.paused_res == r);
+            pick(ui, &mut out, &format!("pausedRes.{k}"), app.tr(r.label()), v.paused_res == r);
         }
     });
-    pick(ui, &mut out, "highQualityPlayback", "High Quality Playback", v.high_quality);
+    pick(ui, &mut out, "highQualityPlayback", app.tr("High Quality Playback"), v.high_quality);
     ui.separator();
-    pick(ui, &mut out, "showRulers", "Show Rulers", v.show_rulers);
-    pick(ui, &mut out, "showGuides", "Show Guides", v.show_guides);
+    pick(ui, &mut out, "showRulers", app.tr("Show Rulers"), v.show_rulers);
+    pick(ui, &mut out, "showGuides", app.tr("Show Guides"), v.show_guides);
     if !v.guides.is_empty() {
-        pick(ui, &mut out, "lockGuides", "Lock Guides", v.lock_guides);
-        pick(ui, &mut out, "clearGuides", "Clear Guides", false);
+        pick(ui, &mut out, "lockGuides", app.tr("Lock Guides"), v.lock_guides);
+        pick(ui, &mut out, "clearGuides", app.tr("Clear Guides"), false);
     }
     if w == Which::Program {
-        pick(ui, &mut out, "snapInProgramMonitor", "Snap in Program Monitor", v.snap);
+        pick(ui, &mut out, "snapInProgramMonitor", app.tr("Snap in Program Monitor"), v.snap);
     }
     ui.separator();
     let pfx = prefix(w);
@@ -703,7 +704,7 @@ pub fn zoom_menu(app: &mut FilmcraftApp, resp: &egui::Response, w: Which) {
     let mut out: Picks = Vec::new();
     egui::Popup::menu(resp).show(|ui| {
         ui.set_min_width(80.0);
-        pick(ui, &mut out, "fit", "Fit", zoom.is_none());
+        pick(ui, &mut out, "fit", app.tr("Fit"), zoom.is_none());
         ui.separator();
         for (k, z) in ZOOMS {
             pick(ui, &mut out, k, &format!("{k}%"), zoom == Some(z));
@@ -736,32 +737,32 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
         GuideDialog::SaveTemplate { .. } => "Save Guides as Template",
         GuideDialog::Manage { .. } => "Manage Guides",
     };
-    egui::Window::new(title).collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| match &mut d {
+    egui::Window::new(app.tr(title)).collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| match &mut d {
         GuideDialog::Add { vertical, position, source } => {
             let m = if *source { "source" } else { "program" };
             ui.horizontal(|ui| {
-                ui.label("Orientation:");
-                let r = ui.radio(*vertical, "Vertical");
+                ui.label(app.tr("Orientation:"));
+                let r = ui.radio(*vertical, app.tr("Vertical"));
                 push(&mut elems, "guides.add.vertical", &r, "Vertical");
                 if r.clicked() {
                     *vertical = true;
                 }
-                let r = ui.radio(!*vertical, "Horizontal");
+                let r = ui.radio(!*vertical, app.tr("Horizontal"));
                 push(&mut elems, "guides.add.horizontal", &r, "Horizontal");
                 if r.clicked() {
                     *vertical = false;
                 }
             });
             ui.horizontal(|ui| {
-                ui.label("Position:");
+                ui.label(app.tr("Position:"));
                 let r = ui.add(egui::DragValue::new(position).speed(1.0).suffix(" px"));
                 push(&mut elems, "guides.add.position", &r, "Position");
             });
             ui.horizontal(|ui| {
-                let r = ui.button("Cancel");
+                let r = ui.button(app.tr("Cancel"));
                 push(&mut elems, "guides.add.cancel", &r, "Cancel");
                 close |= r.clicked();
-                let r = ui.button("OK");
+                let r = ui.button(app.tr("OK"));
                 push(&mut elems, "guides.add.ok", &r, "OK");
                 if r.clicked() {
                     act = Some((
@@ -774,15 +775,15 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
         GuideDialog::SaveTemplate { name, source } => {
             let m = if *source { "source" } else { "program" };
             ui.horizontal(|ui| {
-                ui.label("Name:");
+                ui.label(app.tr("Name:"));
                 let r = ui.text_edit_singleline(name);
                 push(&mut elems, "guides.save.name", &r, "Name");
             });
             ui.horizontal(|ui| {
-                let r = ui.button("Cancel");
+                let r = ui.button(app.tr("Cancel"));
                 push(&mut elems, "guides.save.cancel", &r, "Cancel");
                 close |= r.clicked();
-                let r = ui.button("OK");
+                let r = ui.button(app.tr("OK"));
                 push(&mut elems, "guides.save.ok", &r, "OK");
                 if r.clicked() {
                     act = Some(("view.guideTemplates.save".into(), json!({"monitor": m, "name": name.clone()})));
@@ -792,7 +793,7 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
         GuideDialog::Manage { selected, source } => {
             let m = if *source { "source" } else { "program" };
             if templates.is_empty() {
-                ui.label("No saved guide templates.");
+                ui.label(app.tr("No saved guide templates."));
             }
             for (i, n) in templates.iter().enumerate() {
                 let r = ui.selectable_label(*selected == Some(i), n);
@@ -804,14 +805,14 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
             ui.separator();
             ui.horizontal(|ui| {
                 let sel = selected.and_then(|i| templates.get(i)).cloned();
-                let r = ui.add_enabled(sel.is_some(), egui::Button::new("Apply"));
+                let r = ui.add_enabled(sel.is_some(), egui::Button::new(app.tr("Apply")));
                 push(&mut elems, "guides.manage.apply", &r, "Apply");
                 if r.clicked()
                     && let Some(n) = &sel
                 {
                     act = Some(("view.guideTemplates.apply".into(), json!({"monitor": m, "name": n})));
                 }
-                let r = ui.add_enabled(sel.is_some(), egui::Button::new("Delete"));
+                let r = ui.add_enabled(sel.is_some(), egui::Button::new(app.tr("Delete")));
                 push(&mut elems, "guides.manage.delete", &r, "Delete");
                 if r.clicked()
                     && let Some(n) = &sel
@@ -819,7 +820,7 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
                     act = Some(("view.guideTemplates.delete".into(), json!({"name": n})));
                     *selected = None;
                 }
-                let r = ui.button("Close");
+                let r = ui.button(app.tr("Close"));
                 push(&mut elems, "guides.manage.close", &r, "Close");
                 close |= r.clicked();
             });

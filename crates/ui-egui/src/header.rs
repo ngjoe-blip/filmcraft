@@ -26,7 +26,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let mut x = rect.min.x + if app.integrated_titlebar { 104.0 } else { 14.0 };
     // Home
     let home = Rect::from_center_size(pos2(x + 10.0, rect.center().y), vec2(26.0, 26.0));
-    let hresp = ui.interact(home, egui::Id::new("hdr-home"), Sense::click()).on_hover_text("Home");
+    let hresp = ui.interact(home, egui::Id::new("hdr-home"), Sense::click()).on_hover_text(app.tr("Home"));
     app.auto.add("header.home", home, "Home");
     if hresp.hovered() {
         p.rect_filled(home, 4.0, t.hover);
@@ -39,10 +39,11 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     // Mode tabs (14 pt; active = primary text with a 2 pt underline under the label)
     for (m, label) in [(Mode::Import, "Import"), (Mode::Edit, "Edit"), (Mode::Export, "Export")] {
         let active = app.ui.mode == m;
-        let galley = p.layout_no_wrap(label.to_string(), Tokens::ui(14.0), if active { t.tab_text_active } else { t.tab_text });
+        let tr_label = app.tr(label);
+        let galley = p.layout_no_wrap(tr_label.to_string(), Tokens::ui(14.0), if active { t.tab_text_active } else { t.tab_text });
         let r = Rect::from_min_size(pos2(x - 6.0, rect.min.y + 6.0), vec2(galley.size().x + 12.0, rect.height() - 12.0));
         let resp = ui.interact(r, egui::Id::new(("mode", label)), Sense::click());
-        app.auto.add(&format!("header.mode.{}", label.to_ascii_lowercase()), r, label);
+        app.auto.add(&format!("header.mode.{}", label.to_ascii_lowercase()), r, tr_label);
         let col = if active || resp.hovered() { t.tab_text_active } else { t.tab_text };
         let gw = galley.size().x;
         p.galley_with_override_text_color(pos2(x, rect.center().y - galley.size().y / 2.0), galley, col);
@@ -66,14 +67,16 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         left_end = mu.min_rect().max.x;
     }
     // Document title, centred
-    let title = format!("{}{}", app.session.project.name, if app.session.is_dirty() { " - Edited" } else { "" });
+    let edited = if app.session.is_dirty() { app.tr(" - Edited") } else { "" };
+    let title = format!("{}{}", app.session.project.name, edited);
     // Right cluster: icons at ~38 pt pitch, then workspace name in caps.
     let mut rx = rect.max.x - 14.0;
     let mut btn = |ui: &mut egui::Ui, icon: Icon, id: &str, tip: &str, app: &mut FilmcraftApp| -> egui::Response {
         let r = Rect::from_center_size(pos2(rx - 14.0, rect.center().y), vec2(28.0, 28.0));
         rx -= 38.0;
-        let resp = ui.interact(r, egui::Id::new(("hdr", id)), Sense::click()).on_hover_text(tip);
-        app.auto.add(&format!("header.{id}"), r, tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(("hdr", id)), Sense::click()).on_hover_text(tr_tip);
+        app.auto.add(&format!("header.{id}"), r, tr_tip);
         if resp.hovered() {
             ui.painter().rect_filled(r, 4.0, t.hover);
         }
@@ -85,7 +88,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         ui.ctx().send_viewport_cmd(egui::ViewportCommand::Fullscreen(!fs));
     }
     if btn(ui, Icon::Speaker, "volume", "Volume", app).clicked() {
-        app.ui.status = "Master volume: use the Audio Track Mixer".into();
+        app.ui.status = app.tr("Master volume: use the Audio Track Mixer").into();
     }
     if btn(ui, Icon::Search, "search", "Search", app).clicked() {
         app.show_panel(crate::dock::PanelKind::Effects);
@@ -102,43 +105,44 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     crate::panels::export_mode::quick_export(app, ui.ctx(), pos2(qx - 340.0, rect.max.y + 4.0));
     let ws_resp = btn(ui, Icon::Workspaces, "workspaces", "Workspaces", app);
     // workspace name (caps)
-    let ws = app.ui.workspace.to_uppercase();
+    let ws = app.tr(&app.ui.workspace).to_uppercase();
     let wg = p.layout_no_wrap(ws.clone(), Tokens::ui(11.0), t.text_dim);
     let wr = Rect::from_min_size(pos2(rx - wg.size().x + 10.0, rect.center().y - 10.0), vec2(wg.size().x + 8.0, 20.0));
-    let wresp = ui.interact(wr, egui::Id::new("hdr-ws-name"), Sense::click());
+    let wresp = ui.interact(wr, egui::Id::new("hdr-ws-name"), Sense::click()).on_hover_text(app.tr("Workspaces"));
     app.auto.add("header.workspaceName", wr, &ws);
     p.galley_with_override_text_color(pos2(wr.min.x + 4.0, rect.center().y - wg.size().y / 2.0), wg, if wresp.hovered() { t.text } else { t.text_dim });
     // Community: a labelled Discord button, always one click away.
-    {
+    let r_disc = {
         let label = "Discord";
         let g = p.layout_no_wrap(label.to_string(), Tokens::ui(12.0), Color32::WHITE);
         let w = g.size().x + 34.0;
         let r = Rect::from_min_size(pos2(wr.min.x - w - 14.0, rect.center().y - 12.0), vec2(w, 24.0));
-        let resp = ui.interact(r, egui::Id::new("hdr-discord"), Sense::click()).on_hover_text("Join the ArtCraft Discord (discord.gg/artcraft)");
-        app.auto.add("header.discord", r, "Join the ArtCraft Discord");
+        let resp = ui.interact(r, egui::Id::new("hdr-discord"), Sense::click()).on_hover_text(app.tr("Join the ArtCraft Discord (discord.gg/artcraft)"));
+        app.auto.add("header.discord", r, app.tr("Join the ArtCraft Discord"));
         ui.painter().rect_filled(r, 12.0, if resp.hovered() { t.accent_hover } else { t.accent });
         icons::paint(ui.painter(), Rect::from_center_size(pos2(r.min.x + 14.0, r.center().y), vec2(14.0, 14.0)), Icon::Chat, Color32::WHITE);
         ui.painter().galley(pos2(r.min.x + 25.0, r.center().y - g.size().y / 2.0), g, Color32::WHITE);
-        // Localized menus and user titles can be wider than English. Use the actual gap.
-        let left = left_end + 12.0;
-        let right = r.min.x - 12.0;
-        if right > left + 40.0 {
-            let mut job = egui::text::LayoutJob::simple_singleline(title, Tokens::ui(14.0), t.tab_text_active);
-            job.wrap.max_width = right - left;
-            job.wrap.max_rows = 1;
-            let galley = p.layout_job(job);
-            let half = galley.size().x / 2.0;
-            let center = if rect.center().x - half >= left && rect.center().x + half <= right { rect.center().x } else { (left + right) / 2.0 };
-            p.with_clip_rect(Rect::from_min_max(pos2(left, rect.min.y), pos2(right, rect.max.y))).galley(
-                pos2(center - half, rect.center().y - galley.size().y / 2.0),
-                galley,
-                t.tab_text_active,
-            );
-        }
 
         if resp.clicked() {
             crate::links::open(ui.ctx(), crate::links::DISCORD);
         }
+        r
+    };
+    // Localized menus and user titles can be wider than English. Use the actual gap.
+    let left = left_end + 12.0;
+    let right = r_disc.min.x - 12.0;
+    if right > left + 40.0 {
+        let mut job = egui::text::LayoutJob::simple_singleline(title, Tokens::ui(14.0), t.tab_text_active);
+        job.wrap.max_width = right - left;
+        job.wrap.max_rows = 1;
+        let galley = p.layout_job(job);
+        let half = galley.size().x / 2.0;
+        let center = if rect.center().x - half >= left && rect.center().x + half <= right { rect.center().x } else { (left + right) / 2.0 };
+        p.with_clip_rect(Rect::from_min_max(pos2(left, rect.min.y), pos2(right, rect.max.y))).galley(
+            pos2(center - half, rect.center().y - galley.size().y / 2.0),
+            galley,
+            t.tab_text_active,
+        );
     }
     let popup_id = egui::Id::new("workspaces-popup");
     if ws_resp.clicked() || wresp.clicked() {
@@ -152,13 +156,13 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                 ui.set_min_width(220.0);
                 for w in crate::dock::names(&app.workspaces) {
                     let sel = app.ui.workspace == w;
-                    if ui.selectable_label(sel, &w).clicked() {
+                    if ui.selectable_label(sel, app.tr(&w)).clicked() {
                         app.set_workspace(&w);
                         ui.ctx().data_mut(|d| d.insert_temp(popup_id, false));
                     }
                 }
                 ui.separator();
-                if ui.button("Reset to Saved Layout").clicked() {
+                if ui.button(app.tr("Reset to Saved Layout")).clicked() {
                     let n = app.ui.workspace.clone();
                     app.set_workspace(&n);
                     ui.ctx().data_mut(|d| d.insert_temp(popup_id, false));

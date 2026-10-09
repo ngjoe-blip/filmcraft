@@ -536,9 +536,10 @@ pub fn draw_group_chrome(
                 tabs.extend(seqs.open.iter().map(|(id, name)| Tab { panel: *p, seq: Some(*id), title: name.clone(), active: seqs.active == Some(*id) }));
             } else if *p == PanelKind::Timeline {
                 let name = seqs.open.iter().find(|(id, _)| seqs.active == Some(*id)).map(|(_, n)| n.clone());
-                tabs.push(Tab { panel: *p, seq: None, title: name.unwrap_or_else(|| "Timeline: (no sequences)".into()), active });
+                let no_seq = crate::i18n::tr_ctx(ui.ctx(), "Timeline: (no sequences)");
+                tabs.push(Tab { panel: *p, seq: None, title: name.unwrap_or_else(|| no_seq.into()), active });
             } else {
-                tabs.push(Tab { panel: *p, seq: None, title: p.title().to_string(), active });
+                tabs.push(Tab { panel: *p, seq: None, title: crate::i18n::tr_ctx(ui.ctx(), p.title()).to_string(), active });
             }
         }
         let activate = |tab: &Tab, actions: &mut Vec<DockAction>| match tab.seq {
@@ -732,7 +733,8 @@ pub fn draw_group_chrome(
 
 /// Placeholder body for panels that are not implemented yet.
 pub fn placeholder(ui: &mut egui::Ui, rect: Rect, t: &Tokens, text: &str) {
-    ui.painter().text(rect.center(), Align2::CENTER_CENTER, text, Tokens::ui(12.0), t.text_faint);
+    let tr_text = crate::i18n::tr_ctx(ui.ctx(), text);
+    ui.painter().text(rect.center(), Align2::CENTER_CENTER, tr_text, Tokens::ui(12.0), t.text_faint);
 }
 
 #[cfg(test)]

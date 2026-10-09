@@ -31,7 +31,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let mut open = true;
     match d {
         Dialog::About => {
-            egui::Window::new("About FilmCraft")
+            egui::Window::new(app.tr("About FilmCraft"))
                 .open(&mut open)
                 .collapsible(false)
                 .resizable(false)
@@ -93,7 +93,7 @@ fn audio_gain(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     let mut keep = true;
     let mut apply = false;
     let mut elems: Vec<(String, egui::Rect, String)> = Vec::new();
-    egui::Window::new("Audio Gain").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Audio Gain")).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         ui.add_space(6.0);
         egui::Grid::new("audio-gain").num_columns(2).spacing([12.0, 10.0]).show(ui, |ui| {
             let rows: [(&str, &str, &mut f64); 4] = [
@@ -103,7 +103,7 @@ fn audio_gain(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
                 ("normalizeAll", "Normalize All Peaks to:", &mut draft.all_peaks_db),
             ];
             for (id, label, v) in rows {
-                let r = ui.radio(draft.mode == id, label);
+                let r = ui.radio(draft.mode == id, app.tr(label));
                 elems.push((format!("audioGain.{id}"), r.rect, label.to_string()));
                 if r.clicked() {
                     draft.mode = id.to_string();
@@ -114,17 +114,17 @@ fn audio_gain(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
             }
         });
         ui.add_space(8.0);
-        let pk_text = format!("Peak Amplitude: {}", peak.map(|p| format!("{p:.1} dB")).unwrap_or_else(|| "—".into()));
+        let pk_text = format!("{}: {}", app.tr("Peak Amplitude:"), peak.map(|p| format!("{p:.1} dB")).unwrap_or_else(|| "—".into()));
         let pk = ui.label(&pk_text);
         elems.push(("audioGain.peak".into(), pk.rect, pk_text));
         ui.add_space(8.0);
         ui.horizontal(|ui| {
-            let c = ui.button("Cancel");
+            let c = ui.button(app.tr("Cancel"));
             elems.push(("audioGain.cancel".into(), c.rect, "Cancel".into()));
             if c.clicked() {
                 keep = false;
             }
-            let o = ui.add(egui::Button::new(egui::RichText::new("OK").color(egui::Color32::WHITE)).fill(app.tokens.accent));
+            let o = ui.add(egui::Button::new(egui::RichText::new(app.tr("OK")).color(egui::Color32::WHITE)).fill(app.tokens.accent));
             elems.push(("audioGain.ok".into(), o.rect, "OK".into()));
             if o.clicked() {
                 apply = true;
@@ -174,7 +174,7 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     let mut elems: Vec<(String, egui::Rect, String)> = Vec::new();
     const AUDIO_TYPES: [(&str, &str); 4] = [("standard", "Standard"), ("5.1", "5.1"), ("adaptive", "Adaptive"), ("mono", "Mono")];
     const SUBMIX_TYPES: [(&str, &str); 4] = [("stereo", "Stereo"), ("5.1", "5.1"), ("adaptive", "Adaptive"), ("mono", "Mono")];
-    egui::Window::new("Add Tracks").collapsible(false).resizable(false).default_width(320.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Add Tracks")).collapsible(false).resizable(false).default_width(320.0).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         // everything spans the width the window has: no empty band beside the fields
         ui.set_width(ui.available_width());
         // the label column is as wide as its widest label; the lists take the rest of the row,
@@ -182,11 +182,11 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
         let font = egui::TextStyle::Body.resolve(ui.style());
         let label_w = ["Amount", "Placement", "Track type"]
             .iter()
-            .map(|l| ui.painter().layout_no_wrap(l.to_string(), font.clone(), egui::Color32::WHITE).size().x)
+            .map(|l| ui.painter().layout_no_wrap(app.tr(l).to_string(), font.clone(), egui::Color32::WHITE).size().x)
             .fold(0.0, f32::max);
         let row_h = ui.spacing().interact_size.y;
         let label = |ui: &mut egui::Ui, text: &str| {
-            ui.allocate_ui_with_layout(egui::vec2(label_w, row_h), egui::Layout::right_to_left(egui::Align::Center), |ui| ui.label(text));
+            ui.allocate_ui_with_layout(egui::vec2(label_w, row_h), egui::Layout::right_to_left(egui::Align::Center), |ui| ui.label(app.tr(text)));
         };
         let groups: [(&str, &str, &mut u32, &mut usize, &[String], Option<(&mut String, &[(&str, &str); 4])>); 3] = [
             ("video", "Add video tracks", &mut d.video, &mut d.video_after, &vnames, None),
@@ -195,7 +195,7 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
         ];
         for (kind, title, amount, after, tracks, track_type) in groups {
             ui.add_space(4.0);
-            ui.label(egui::RichText::new(title).strong());
+            ui.label(egui::RichText::new(app.tr(title)).strong());
             ui.group(|ui| {
                 ui.set_width(ui.available_width());
                 ui.horizontal(|ui| {
@@ -207,8 +207,8 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
                     label(ui, "Placement");
                     *after = (*after).min(tracks.len());
                     let place = |n: usize| match n.checked_sub(1).and_then(|i| tracks.get(i)) {
-                        Some(name) => format!("After {name}"),
-                        None => "Before First Track".to_string(),
+                        Some(name) => format!("{} {name}", app.tr("After")),
+                        None => app.tr("Before First Track").to_string(),
                     };
                     let shown = place(*after);
                     let list_w = ui.available_width();
@@ -227,11 +227,11 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
                 if let Some((chosen, types)) = track_type {
                     ui.horizontal(|ui| {
                         label(ui, "Track type");
-                        let shown = types.iter().find(|(id, _)| *id == chosen.as_str()).map_or(types[0].1, |(_, label)| label).to_string();
+                        let shown = types.iter().find(|(id, _)| *id == chosen.as_str()).map_or_else(|| app.tr(types[0].1).to_string(), |(_, label)| app.tr(label).to_string());
                         let list_w = ui.available_width();
                         let r = egui::ComboBox::from_id_salt(("add-tracks-type", kind)).selected_text(&shown).width(list_w).show_ui(ui, |ui| {
                             for (id, label) in types {
-                                let o = ui.selectable_value(chosen, id.to_string(), *label);
+                                let o = ui.selectable_value(chosen, id.to_string(), app.tr(*label));
                                 elems.push((format!("addTracks.{kind}.type.option.{id}"), o.rect, label.to_string()));
                             }
                         });
@@ -242,12 +242,12 @@ fn add_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
         }
         ui.add_space(10.0);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            let o = ui.add(egui::Button::new(egui::RichText::new("OK").color(egui::Color32::WHITE)).fill(app.tokens.accent));
+            let o = ui.add(egui::Button::new(egui::RichText::new(app.tr("OK")).color(egui::Color32::WHITE)).fill(app.tokens.accent));
             elems.push(("addTracks.ok".into(), o.rect, "OK".into()));
             if o.clicked() {
                 apply = true;
             }
-            let c = ui.button("Cancel");
+            let c = ui.button(app.tr("Cancel"));
             elems.push(("addTracks.cancel".into(), c.rect, "Cancel".into()));
             if c.clicked() {
                 keep = false;
@@ -297,23 +297,23 @@ fn delete_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     let mut keep = true;
     let mut apply = false;
     let mut elems: Vec<(String, egui::Rect, String)> = Vec::new();
-    egui::Window::new("Delete Tracks").collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
+    egui::Window::new(app.tr("Delete Tracks")).collapsible(false).resizable(false).anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0]).show(ctx, |ui| {
         ui.set_min_width(300.0);
         for (kind, title, on, target, list) in [
             ("video", "Video Tracks", &mut draft.video, &mut draft.video_target, &vnames),
             ("audio", "Audio Tracks", &mut draft.audio, &mut draft.audio_target, &anames),
         ] {
             ui.add_space(4.0);
-            ui.label(egui::RichText::new(title).strong());
-            let label = format!("Delete {title}");
+            ui.label(egui::RichText::new(app.tr(title)).strong());
+            let label = format!("{} {}", app.tr("Delete"), app.tr(title));
             let c = ui.checkbox(on, &label);
             elems.push((format!("deleteTracks.{kind}"), c.rect, label));
             ui.horizontal(|ui| {
                 ui.add_space(22.0);
-                let shown = if target == "empty" { "All Empty Tracks".to_string() } else { target.clone() };
+                let shown = if target == "empty" { app.tr("All Empty Tracks").to_string() } else { target.clone() };
                 ui.add_enabled_ui(*on, |ui| {
                     let r = egui::ComboBox::from_id_salt(("delete-tracks", kind)).selected_text(&shown).width(170.0).show_ui(ui, |ui| {
-                        let e = ui.selectable_value(target, "empty".to_string(), "All Empty Tracks");
+                        let e = ui.selectable_value(target, "empty".to_string(), app.tr("All Empty Tracks"));
                         elems.push((format!("deleteTracks.{kind}.option.empty"), e.rect, "All Empty Tracks".into()));
                         for n in list {
                             let r = ui.selectable_value(target, n.clone(), n);
@@ -326,13 +326,13 @@ fn delete_tracks(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
         }
         ui.add_space(10.0);
         ui.horizontal(|ui| {
-            let c = ui.button("Cancel");
+            let c = ui.button(app.tr("Cancel"));
             elems.push(("deleteTracks.cancel".into(), c.rect, "Cancel".into()));
             if c.clicked() {
                 keep = false;
             }
             let o =
-                ui.add_enabled(draft.video || draft.audio, egui::Button::new(egui::RichText::new("OK").color(egui::Color32::WHITE)).fill(app.tokens.accent));
+                ui.add_enabled(draft.video || draft.audio, egui::Button::new(egui::RichText::new(app.tr("OK")).color(egui::Color32::WHITE)).fill(app.tokens.accent));
             elems.push(("deleteTracks.ok".into(), o.rect, "OK".into()));
             if o.clicked() {
                 apply = true;
@@ -374,8 +374,8 @@ fn about(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         for (i, (id, label)) in [("about", "About"), ("contributors", "Contributors"), ("models", "Models")].into_iter().enumerate() {
             let i = i as u8;
-            let r = ui.selectable_label(tab == i, label);
-            app.auto.add(&format!("about.tab.{id}"), r.rect, label);
+            let r = ui.selectable_label(tab == i, app.tr(label));
+            app.auto.add(&format!("about.tab.{id}"), r.rect, app.tr(label));
             if r.clicked() {
                 tab = i;
             }
@@ -413,13 +413,14 @@ fn about_tab(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
     ui.add_space(6.0);
     ui.heading("FilmCraft");
     ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
-    ui.label("A clean-room, pure-Rust non-linear video editor. Part of the ArtCraft family.");
+    ui.label(app.tr("A clean-room, pure-Rust non-linear video editor. Part of the ArtCraft family."));
     ui.add_space(10.0);
     let mut link = |ui: &mut egui::Ui, id: &str, icon: Icon, label: &str, url: &str, primary: bool| {
         let size = egui::vec2(ui.available_width(), if primary { 36.0 } else { 28.0 });
         let (r, resp) = ui.allocate_exact_size(size, egui::Sense::click());
         let resp = resp.on_hover_text(url);
-        app.auto.add(&format!("about.{id}"), r, label);
+        let label_tr = app.tr(label);
+        app.auto.add(&format!("about.{id}"), r, label_tr);
         let bg = if primary {
             if resp.hovered() { t.accent_hover } else { t.accent }
         } else if resp.hovered() {
@@ -434,7 +435,7 @@ fn about_tab(app: &mut FilmcraftApp, ui: &mut egui::Ui) {
         ui.painter().text(
             egui::pos2(r.min.x + 40.0, r.center().y),
             egui::Align2::LEFT_CENTER,
-            label,
+            label_tr,
             crate::theme::Tokens::ui(if primary { 14.0 } else { 13.0 }),
             fg,
         );

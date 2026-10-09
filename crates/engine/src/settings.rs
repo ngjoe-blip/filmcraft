@@ -89,11 +89,13 @@ pub struct AppearancePrefs {
     pub accessible_contrast: bool,
     /// Highlight (accent) colour of selections, focus and primary buttons (`#rrggbb`).
     pub highlight_color: String,
+    /// "Language": `en` (default) | `ja` | `es` | `pt-br` | `zh-cn`.
+    pub language: String,
 }
 
 impl Default for AppearancePrefs {
     fn default() -> Self {
-        Self { color_theme: "darkest".into(), accessible_contrast: false, highlight_color: DEFAULT_HIGHLIGHT.into() }
+        Self { color_theme: "darkest".into(), accessible_contrast: false, highlight_color: DEFAULT_HIGHLIGHT.into(), language: "en".into() }
     }
 }
 
@@ -602,6 +604,13 @@ const OPENING: &[(&str, &str)] = &[("showOpenDialog", "Show Open Dialog"), ("sho
 const BIN_OPEN: &[(&str, &str)] = &[("openInPlace", "Open in place"), ("openNewTab", "Open new tab"), ("openNewWindow", "Open in new window")];
 const PROJECT_OPEN: &[(&str, &str)] = &[("openNewTab", "Open new tab"), ("openNewWindow", "Open in new window")];
 const THEMES: &[(&str, &str)] = &[("darkest", "Darkest"), ("dark", "Dark"), ("light", "Light")];
+const UI_LANGUAGES: &[(&str, &str)] = &[
+    ("en", "English"),
+    ("ja", "Japanese"),
+    ("es", "Spanish"),
+    ("pt-br", "Portuguese (Brazil)"),
+    ("zh-cn", "Simplified Chinese"),
+];
 const MIXDOWN: &[(&str, &str)] = &[("front", "Front Only"), ("frontRear", "Front + Rear"), ("frontLfe", "Front + LFE"), ("frontRearLfe", "Front + Rear + LFE")];
 const AUDITION: &[(&str, &str)] = &[("scratch", "Scratch disk location for Captured Audio"), ("nextToMedia", "Next to original media files")];
 const BUFFERS: &[(&str, &str)] = &[("64", "64"), ("128", "128"), ("256", "256"), ("512", "512"), ("1024", "1024"), ("2048", "2048"), ("4096", "4096")];
@@ -706,6 +715,7 @@ static CATEGORIES: &[Category] = &[
             f("appearance.colorTheme", "Color Theme", Kind::Choice(THEMES), true),
             b("appearance.accessibleContrast", "Accessible color contrast", true),
             f("appearance.highlightColor", "Highlight Color", Kind::Color, true),
+            f("appearance.language", "Language", Kind::Choice(UI_LANGUAGES), true),
         ],
     },
     Category {
@@ -1049,7 +1059,7 @@ pub fn validate(key: &str, v: &Value) -> std::result::Result<(), String> {
                 Value::Number(n) => n.to_string(),
                 _ => return Err(format!("`{key}` must be one of {}", opts.iter().map(|o| o.0).collect::<Vec<_>>().join(", "))),
             };
-            if opts.iter().any(|o| o.0 == s) {
+            if opts.iter().any(|o| o.0 == s) || (key == "appearance.language" && s == "zh") {
                 Ok(())
             } else {
                 Err(format!("`{key}` must be one of {}", opts.iter().map(|o| o.0).collect::<Vec<_>>().join(", ")))

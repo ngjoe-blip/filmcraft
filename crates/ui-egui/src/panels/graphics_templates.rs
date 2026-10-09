@@ -134,6 +134,7 @@ fn tab_button(ui: &mut egui::Ui, r: Rect, label: &str, on: bool, t: &Tokens) -> 
 /// The Essential Graphics panel: Browse and Edit tabs.
 pub fn essential_graphics(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let t = app.tokens;
+    let lang = app.ui.language;
     let tab = match app.ui.gfx_templates.tab.as_str() {
         "browse" => "browse",
         "edit" => "edit",
@@ -145,7 +146,7 @@ pub fn essential_graphics(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect)
     let mut elems: Elems = Vec::new();
     for (i, (id, label)) in [("browse", "Browse"), ("edit", "Edit")].into_iter().enumerate() {
         let r = Rect::from_min_size(pos2(head.min.x + 8.0 + i as f32 * 80.0, head.min.y), vec2(76.0, 30.0));
-        if tab_button(ui, r, label, tab == id, &t).clicked() {
+        if tab_button(ui, r, lang.tr(label), tab == id, &t).clicked() {
             app.ui.gfx_templates.tab = id.into();
         }
         elems.push((format!("essentialGraphics.tab.{id}"), r, label.into()));
@@ -163,6 +164,7 @@ pub fn essential_graphics(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect)
 
 fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let t = app.tokens;
+    let lang = app.ui.language;
     let ctx = ui.ctx().clone();
     let lib = cached_library(app, &ctx);
     let mut elems: Elems = Vec::new();
@@ -175,17 +177,17 @@ fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     b.set_clip_rect(rect);
     let st = &mut app.ui.gfx_templates;
     b.horizontal(|ui| {
-        let r = ui.add(egui::TextEdit::singleline(&mut st.query).hint_text("Search templates").desired_width((ui.available_width() - 230.0).max(110.0)));
+        let r = ui.add(egui::TextEdit::singleline(&mut st.query).hint_text(lang.tr("Search templates")).desired_width((ui.available_width() - 230.0).max(110.0)));
         elems.push(("gfxTemplates.search".into(), r.rect, "Search".into()));
-        let cur = if st.category.is_empty() { "All Categories".to_string() } else { st.category.clone() };
+        let cur = if st.category.is_empty() { lang.tr("All Categories").to_string() } else { lang.tr(&st.category).to_string() };
         let r = egui::ComboBox::from_id_salt("gfx-cat").selected_text(cur).width(130.0).show_ui(ui, |ui| {
-            ui.selectable_value(&mut st.category, String::new(), "All Categories");
+            ui.selectable_value(&mut st.category, String::new(), lang.tr("All Categories"));
             for c in &cats {
-                ui.selectable_value(&mut st.category, c.clone(), c);
+                ui.selectable_value(&mut st.category, c.clone(), lang.tr(c));
             }
         });
         elems.push(("gfxTemplates.category".into(), r.response.rect, "Category".into()));
-        let r = ui.button("Install…").on_hover_text("Install Motion Graphics Template (.fcgt)");
+        let r = ui.button(lang.tr("Install…")).on_hover_text(lang.tr("Install Motion Graphics Template (.fcgt)"));
         elems.push(("gfxTemplates.install".into(), r.rect, "Install".into()));
         install = r.clicked();
     });
@@ -213,7 +215,7 @@ fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
         &mut b,
         |ui| {
             if shown.is_empty() {
-                ui.label(egui::RichText::new("No templates match.").color(t.text_faint));
+                ui.label(egui::RichText::new(lang.tr("No templates match.")).color(t.text_faint));
             }
             for row in shown.chunks(cols) {
                 ui.horizontal(|ui| {
@@ -239,14 +241,15 @@ fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                         let k = (ir.width() / sz.x).min(ir.height() / sz.y);
                         let tr = Rect::from_center_size(ir.center(), sz * k);
                         ui.painter().image(tex.id(), tr, Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0)), Color32::WHITE);
-                        ui.painter().text(pos2(r.min.x + 6.0, ir.max.y + 6.0), Align2::LEFT_TOP, &e.template.name, Tokens::ui(11.5), t.text);
-                        let sub = if e.path.is_some() { format!("{} · My Template", e.template.category) } else { e.template.category.clone() };
+                        ui.painter().text(pos2(r.min.x + 6.0, ir.max.y + 6.0), Align2::LEFT_TOP, lang.tr(&e.template.name), Tokens::ui(11.5), t.text);
+                        let cat_tr = lang.tr(&e.template.category);
+                        let sub = if e.path.is_some() { format!("{cat_tr} · {}", lang.tr("My Template")) } else { cat_tr.to_string() };
                         ui.painter().text(pos2(r.min.x + 6.0, ir.max.y + 20.0), Align2::LEFT_TOP, sub, Tokens::ui(10.0), t.text_faint);
                         if on {
                             ui.painter().rect_stroke(r, 4.0, Stroke::new(1.5, t.accent), StrokeKind::Inside);
                         }
                         elems.push((format!("gfxTemplates.item.{}", e.template.id), r, e.template.name.clone()));
-                        let resp = resp.on_hover_text(&e.template.description);
+                        let resp = resp.on_hover_text(lang.tr(&e.template.description));
                         if resp.drag_started() {
                             crate::panels::start_drag_template(ui, &e.template.id, &e.template.name);
                         }
@@ -264,13 +267,13 @@ fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     b.add_space(4.0);
     let sel_entry = selected.as_ref().and_then(|s| lib.iter().find(|e| &e.template.id == s));
     b.horizontal(|ui| {
-        let r = ui.add_enabled(sel_entry.is_some(), egui::Button::new("Apply"));
+        let r = ui.add_enabled(sel_entry.is_some(), egui::Button::new(lang.tr("Apply")));
         elems.push(("gfxTemplates.apply".into(), r.rect, "Apply".into()));
         if r.clicked() {
             apply = selected.clone();
         }
         let user = sel_entry.is_some_and(|e| e.path.is_some());
-        let r = ui.add_enabled(user, egui::Button::new("Remove"));
+        let r = ui.add_enabled(user, egui::Button::new(lang.tr("Remove")));
         elems.push(("gfxTemplates.remove".into(), r.rect, "Remove".into()));
         if r.clicked()
             && let Some(id) = &selected
@@ -278,7 +281,7 @@ fn browse(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             actions.push(("graphics.template.remove".into(), json!({"template": id})));
         }
         if let Some(e) = sel_entry {
-            ui.label(egui::RichText::new(format!("{} editable properties", e.template.controls.len())).color(t.text_faint));
+            ui.label(egui::RichText::new(format!("{} {}", e.template.controls.len(), lang.tr("editable properties"))).color(t.text_faint));
         }
     });
     if let Some(s) = new_sel {
@@ -340,8 +343,9 @@ pub fn template_controls(
     actions: &mut Vec<(String, Value)>,
 ) -> bool {
     let t = app.tokens;
+    let lang = app.ui.language;
     let Some(link) = it.graphic.as_ref().and_then(|m| m.template.as_ref()) else { return false };
-    ui.label(egui::RichText::new(format!("   Template: {}", link.name)).color(t.text_faint).size(11.0));
+    ui.label(egui::RichText::new(format!("   Template: {}", lang.tr(&link.name))).color(t.text_faint).size(11.0));
     for c in &link.controls {
         let Some(e) = it.effects.iter().find(|e| graphic::is_layer(e) && filmcraft_project::gtemplate::layer_uid(e) == c.layer) else { continue };
         let id = format!("gfxTemplates.control.{}", c.id);
@@ -352,7 +356,7 @@ pub fn template_controls(
             && let Some(ParamValue::Text(s0)) = &pv
             && s0.contains('\n')
         {
-            ui.label(egui::RichText::new(format!("    {}", c.name)).color(t.text_dim).size(12.0));
+            ui.label(egui::RichText::new(format!("    {}", lang.tr(&c.name))).color(t.text_dim).size(12.0));
             let mut s = s0.clone();
             let rows = s.lines().count().clamp(2, 8);
             let r = ui
@@ -367,7 +371,7 @@ pub fn template_controls(
             }
             continue;
         }
-        let mut vui = row_label(ui, &c.name, &t);
+        let mut vui = row_label(ui, lang.tr(&c.name), &t);
         let set =
             |v: Value, actions: &mut Vec<(String, Value)>| actions.push(("graphics.template.set".into(), json!({"clip": clip.0, "control": c.id, "value": v})));
         match c.kind {

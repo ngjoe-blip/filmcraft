@@ -1136,7 +1136,7 @@ fn section_header(ui: &mut egui::Ui, app: &mut FilmcraftApp, name: &str, t: &Tok
         if open { Icon::ChevronDown } else { Icon::ChevronRight },
         t.text_dim,
     );
-    ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, name, Tokens::semibold(13.0), t.text);
+    ui.painter().text(pos2(r.min.x + 18.0, r.center().y), Align2::LEFT_CENTER, app.tr(name), Tokens::semibold(13.0), t.text);
     app.auto.add(&format!("graphics.section.{}", name.replace(' ', "")), r, name);
     if resp.clicked() {
         if open {
@@ -1245,7 +1245,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let Some((clip, it)) = selected_graphic(app) else {
         crate::dock::placeholder(ui, rect, &t, "Select a graphic clip, or use the Type tool (T) on the Program monitor");
         let br = Rect::from_center_size(rect.center() + vec2(0.0, 30.0), vec2(150.0, 26.0));
-        let resp = ui.put(br, egui::Button::new("Create new graphic"));
+        let resp = ui.put(br, egui::Button::new(app.tr("Create new graphic")));
         app.auto.add("graphics.createNew", br, "Create new graphic");
         if resp.clicked()
             && let Err(e) = app.session.execute("graphics.newText", json!({"text": "New Text"}))
@@ -1277,7 +1277,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                     ("", "New Rectangle", "graphics.newShape", json!({"clip": clip.0, "shape": "rectangle"})),
                     ("", "New Ellipse", "graphics.newShape", json!({"clip": clip.0, "shape": "ellipse", "size": [200, 200]})),
                 ] {
-                    let r = letter_button(ui, label, tip, false, &t, Tokens::semibold(13.0));
+                    let r = letter_button(ui, label, app.tr(tip), false, &t, Tokens::semibold(13.0));
                     if label.is_empty() {
                         let ir = Rect::from_center_size(r.rect.center(), vec2(14.0, 14.0));
                         icons::paint(ui.painter(), ir, if tip == "New Rectangle" { Icon::Rectangle } else { Icon::Ellipse }, t.text_dim);
@@ -1290,7 +1290,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                 ui.add_space(8.0);
                 if let Some(l) = sel {
                     for (label, tip, to) in [("↑", "Bring Forward", "forward"), ("↓", "Send Backward", "backward")] {
-                        let r = letter_button(ui, label, tip, false, &t, Tokens::ui(13.0));
+                        let r = letter_button(ui, label, app.tr(tip), false, &t, Tokens::ui(13.0));
                         autos.push((format!("graphics.arrange.{to}"), r.rect, tip.into()));
                         if r.clicked() {
                             actions.push(("graphics.arrangeLayer".into(), json!({"clip": clip.0, "layer": l, "to": to})));
@@ -1299,7 +1299,7 @@ pub fn properties(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                     let (dr, dresp) = ui.allocate_exact_size(vec2(24.0, 22.0), Sense::click());
                     icons::paint(ui.painter(), dr.shrink(4.0), Icon::Trash, if dresp.hovered() { t.text } else { t.text_dim });
                     autos.push(("graphics.deleteLayer".into(), dr, "Delete Layer".into()));
-                    if dresp.on_hover_text("Delete Layer").clicked() {
+                    if dresp.on_hover_text(app.tr("Delete Layer")).clicked() {
                         actions.push(("graphics.deleteLayer".into(), json!({"clip": clip.0, "layer": l})));
                     }
                 }

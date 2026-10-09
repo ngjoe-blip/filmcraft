@@ -212,7 +212,7 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let body = Rect::from_min_max(pos2(rect.min.x, rect.min.y + 2.0), pos2(rect.max.x, footer.min.y));
     // effects / sends disclosure at the left edge
     let arrow = Rect::from_min_size(pos2(body.min.x + 2.0, body.min.y + 4.0), vec2(14.0, 18.0));
-    let aresp = ui.interact(arrow, egui::Id::new("mixer-fx-toggle"), Sense::click()).on_hover_text("Show/Hide Effects and Sends");
+    let aresp = ui.interact(arrow, egui::Id::new("mixer-fx-toggle"), Sense::click()).on_hover_text(app.tr("Show/Hide Effects and Sends"));
     icons::paint(ui.painter(), arrow.shrink(2.0), if app.ui.mixer_fx_open { Icon::ChevronDown } else { Icon::ChevronRight }, t.icon);
     app.auto.add("mixer.showEffects", arrow, "Show/Hide Effects and Sends");
     if aresp.clicked() {
@@ -220,19 +220,19 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     }
     // panel menu: Show/Hide Tracks, Meter Input(s) Only
     let menu_r = Rect::from_min_size(pos2(body.min.x + 2.0, body.min.y + 26.0), vec2(14.0, 18.0));
-    let mresp = ui.interact(menu_r, egui::Id::new("mixer-menu"), Sense::click()).on_hover_text("Audio Track Mixer menu");
+    let mresp = ui.interact(menu_r, egui::Id::new("mixer-menu"), Sense::click()).on_hover_text(app.tr("Audio Track Mixer menu"));
     icons::paint(ui.painter(), menu_r.shrink(2.0), Icon::Hamburger, if mresp.hovered() { t.tab_text_active } else { t.icon });
     app.auto.add("mixer.menu", menu_r, "Audio Track Mixer menu");
     let show_hide_id = egui::Id::new("mixer-show-hide-open");
     let mut show_hide: bool = ui.data(|d| d.get_temp(show_hide_id)).unwrap_or(false);
     egui::Popup::menu(&mresp).show(|ui| {
-        let r = ui.button("Show/Hide Tracks…");
+        let r = ui.button(app.tr("Show/Hide Tracks…"));
         app.auto.add("mixer.menu.showHide", r.rect, "Show/Hide Tracks…");
         if r.clicked() {
             show_hide = true;
         }
         let on = app.ui.mixer_meter_input_only;
-        let r = ui.selectable_label(on, "Meter Input(s) Only");
+        let r = ui.selectable_label(on, app.tr("Meter Input(s) Only"));
         app.auto.add("mixer.menu.meterInputOnly", r.rect, "Meter Input(s) Only");
         if r.clicked() {
             app.ui.mixer_meter_input_only = !on;
@@ -241,7 +241,7 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     if show_hide {
         let mut open = true;
         let mut close = false;
-        egui::Window::new("Show/Hide Tracks").id(egui::Id::new("mixer-show-hide")).collapsible(false).resizable(false).open(&mut open).show(ui.ctx(), |ui| {
+        egui::Window::new(app.tr("Show/Hide Tracks")).id(egui::Id::new("mixer-show-hide")).collapsible(false).resizable(false).open(&mut open).show(ui.ctx(), |ui| {
             for id in seq.audio_tracks.iter().chain(&seq.submix_tracks).map(|t| t.id) {
                 let label = strip_label(&seq, id);
                 let name = seq.mix_track(id).map(|t| t.name.clone()).unwrap_or_default();
@@ -257,12 +257,12 @@ pub fn track_mixer(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
                 }
             }
             ui.horizontal(|ui| {
-                let r = ui.button("Show All");
+                let r = ui.button(app.tr("Show All"));
                 app.auto.add("mixer.showHide.all", r.rect, "Show All");
                 if r.clicked() {
                     app.ui.mixer_hidden.clear();
                 }
-                let r = ui.button("OK");
+                let r = ui.button(app.tr("OK"));
                 app.auto.add("mixer.showHide.ok", r.rect, "OK");
                 if r.clicked() {
                     close = true;
@@ -838,8 +838,9 @@ fn transport(app: &mut FilmcraftApp, ui: &mut egui::Ui, row: Rect, cx: &mut Ctx)
     let mut x = row.center().x - bw * buttons.len() as f32 / 2.0;
     for (icon, cmd, tip) in buttons {
         let r = Rect::from_min_size(pos2(x, row.min.y + 4.0), vec2(bw - 2.0, 26.0));
-        let resp = ui.interact(r, egui::Id::new(("mixer-transport", cmd)), Sense::click()).on_hover_text(tip);
-        app.auto.add(&format!("mixer.transport.{cmd}"), r, tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new(("mixer-transport", cmd)), Sense::click()).on_hover_text(tr_tip);
+        app.auto.add(&format!("mixer.transport.{cmd}"), r, tr_tip);
         if resp.hovered() {
             ui.painter().rect_filled(r, 4.0, t.hover);
         }

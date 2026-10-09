@@ -148,7 +148,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
     let size = vec2((screen.width() - 40.0).clamp(760.0, 1320.0), (screen.height() - 60.0).clamp(560.0, 900.0));
     let mut close: Option<bool> = None; // Some(true) = OK, Some(false) = Cancel
     let mut open = true;
-    egui::Window::new("Keyboard Shortcuts")
+    egui::Window::new(app.tr("Keyboard Shortcuts"))
         .id(egui::Id::new("keyboard-shortcuts"))
         .open(&mut open)
         .collapsible(false)
@@ -198,7 +198,7 @@ pub fn show(app: &mut FilmcraftApp, ctx: &egui::Context) -> bool {
 }
 
 fn small_button(app: &mut FilmcraftApp, ui: &mut egui::Ui, id: &str, label: &str, enabled: bool) -> bool {
-    let r = ui.add_enabled(enabled, egui::Button::new(RichText::new(label).size(12.5)).min_size(vec2(0.0, 24.0)));
+    let r = ui.add_enabled(enabled, egui::Button::new(RichText::new(app.tr(label)).size(12.5)).min_size(vec2(0.0, 24.0)));
     app.auto.add(id, r.rect, label);
     r.clicked()
 }
@@ -210,7 +210,7 @@ fn header(app: &mut FilmcraftApp, ui: &mut egui::Ui, t: &Tokens) {
     let builtin: Vec<String> = presets["builtin"].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(str::to_string)).collect();
     let custom: Vec<String> = presets["custom"].as_array().into_iter().flatten().filter_map(|v| v.as_str().map(str::to_string)).collect();
     ui.horizontal(|ui| {
-        ui.label(RichText::new("Preset:").size(13.0).color(t.text_dim));
+        ui.label(RichText::new(app.tr("Preset:")).size(13.0).color(t.text_dim));
         let shown = if modified { format!("{active} (modified)") } else { active.clone() };
         let r = egui::ComboBox::from_id_salt("shortcuts-preset").width(280.0).selected_text(shown).show_ui(ui, |ui| {
             for name in builtin.iter().chain(custom.iter()) {
@@ -763,12 +763,12 @@ fn footer(app: &mut FilmcraftApp, ui: &mut egui::Ui, t: &Tokens) -> Option<bool>
         });
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             let ok =
-                ui.add(egui::Button::new(RichText::new("OK").size(13.0).color(Color32::WHITE)).fill(t.accent).min_size(vec2(72.0, 28.0)).corner_radius(14.0));
+                ui.add(egui::Button::new(RichText::new(app.tr("OK")).size(13.0).color(Color32::WHITE)).fill(t.accent).min_size(vec2(72.0, 28.0)).corner_radius(14.0));
             app.auto.add("shortcuts.ok", ok.rect, "OK");
             if ok.clicked() {
                 close = Some(true);
             }
-            let cancel = ui.add(egui::Button::new(RichText::new("Cancel").size(13.0)).min_size(vec2(72.0, 28.0)).corner_radius(14.0));
+            let cancel = ui.add(egui::Button::new(RichText::new(app.tr("Cancel")).size(13.0)).min_size(vec2(72.0, 28.0)).corner_radius(14.0));
             app.auto.add("shortcuts.cancel", cancel.rect, "Cancel");
             if cancel.clicked() {
                 close = Some(false);

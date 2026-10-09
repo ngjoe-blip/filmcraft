@@ -447,6 +447,7 @@ impl Preferences {
             (Value::Number(n), Value::Number(m)) if n.is_u64() && !m.is_u64() => {
                 Value::from(m.as_f64().filter(|f| f.is_finite() && *f >= 0.0).ok_or_else(|| format!("`{key}` must be a non-negative number"))?.round() as u64)
             }
+            (_, Value::String(s)) if key == "appearance.language" && s == "zh" => Value::from("zh-cn"),
             (_, v) => v,
         };
         *slot = value;

@@ -271,43 +271,44 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, which: Which)
     // zoom + resolution dropdowns centred-ish
     let zr = Rect::from_min_size(pos2(row1.min.x + 116.0, row1.min.y), vec2(70.0, 24.0));
     let zoom_label = match mv.zoom {
-        None => "Fit".to_string(),
+        None => app.tr("Fit").to_string(),
         Some(z) => format!("{}%", (z * 100.0).round() as i32),
     };
     let zresp = crate::widgets::dropdown_text(ui, zr, &zoom_label, &t, egui::Id::new((prefix, "zoom")));
-    app.auto.add(&format!("{prefix}.zoom"), zr, "Select Zoom Level");
+    app.auto.add(&format!("{prefix}.zoom"), zr, app.tr("Select Zoom Level"));
     monitor_view::zoom_menu(app, &zresp, which);
     let res = mv.res;
     let rr = Rect::from_min_size(pos2(row1.max.x - 196.0, row1.min.y), vec2(62.0, 24.0));
-    let rresp = crate::widgets::dropdown_text(ui, rr, res.label(), &t, egui::Id::new((prefix, "res")));
-    app.auto.add(&format!("{prefix}.resolution"), rr, "Select Playback Resolution");
+    let rresp = crate::widgets::dropdown_text(ui, rr, app.tr(res.label()), &t, egui::Id::new((prefix, "res")));
+    app.auto.add(&format!("{prefix}.resolution"), rr, app.tr("Select Playback Resolution"));
     egui::Popup::menu(&rresp).show(|ui| {
         for r in PlaybackRes::ALL {
-            if ui.selectable_label(r == res, r.label()).clicked() {
+            if ui.selectable_label(r == res, app.tr(r.label())).clicked() {
                 monitor_view::view_mut(app, which).res = r;
             }
         }
     });
     let wr = Rect::from_min_size(pos2(rr.max.x + 6.0, row1.min.y + 1.0), vec2(22.0, 22.0));
-    let wresp = ui.interact(wr, egui::Id::new((prefix, "wrench")), Sense::click());
+    let wresp = ui.interact(wr, egui::Id::new((prefix, "wrench")), Sense::click()).on_hover_text(app.tr("Settings"));
     icons::paint(ui.painter(), wr.shrink(4.0), Icon::Wrench, if wresp.hovered() { t.tab_text_active } else { t.icon });
-    app.auto.add(&format!("{prefix}.settings"), wr, "Settings");
+    app.auto.add(&format!("{prefix}.settings"), wr, app.tr("Settings"));
     egui::Popup::menu(&wresp).show(|ui| {
         ui.set_min_width(240.0);
+        let lang = app.ui.language;
         monitor_view::wrench_items(app, ui, which);
         let mv = monitor_view::view_mut(app, which);
-        ui.checkbox(&mut mv.safe_margins, "Safe Margins");
-        ui.checkbox(&mut mv.show_transport, "Show Transport Controls");
+        ui.checkbox(&mut mv.safe_margins, lang.tr("Safe Margins"));
+        ui.checkbox(&mut mv.show_transport, lang.tr("Show Transport Controls"));
         if which == Which::Program {
             ui.separator();
-            ui.checkbox(&mut app.ui.show_scopes, "Lumetri Scopes");
-            ui.checkbox(&mut app.playback.looping, "Loop");
+            ui.checkbox(&mut app.ui.show_scopes, lang.tr("Lumetri Scopes"));
+            ui.checkbox(&mut app.playback.looping, lang.tr("Loop"));
             ui.separator();
             let mut follows = app.session.state.multicam_audio_follows_video;
-            if ui.checkbox(&mut follows, "Multi-Camera Audio Follows Video").changed() {
+            if ui.checkbox(&mut follows, lang.tr("Multi-Camera Audio Follows Video")).changed() {
                 let _ = app.session.execute("multicam.audioFollowsVideo", json!({"enabled": follows}));
             }
-            ui.checkbox(&mut app.ui.multicam_record, "Multi-Camera Record");
+            ui.checkbox(&mut app.ui.multicam_record, lang.tr("Multi-Camera Record"));
             let v = app.session.state.multicam_view.clone();
             for (cmd, label, on) in [
                 ("multicam.selectionTopDown", "Multi-Camera Selection Top Down", v.top_down),
@@ -316,18 +317,18 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect, which: Which)
                 ("multicam.transmitView", "Transmit Multi-Camera View", v.transmit),
             ] {
                 let mut b = on;
-                if ui.checkbox(&mut b, label).changed() {
+                if ui.checkbox(&mut b, lang.tr(label)).changed() {
                     let _ = app.session.execute(cmd, json!({"enabled": b}));
                 }
             }
-            ui.menu_button("Multi-Camera Layout", |ui| {
+            ui.menu_button(lang.tr("Multi-Camera Layout"), |ui| {
                 for (k, label) in [("auto", "Automatic"), ("2x2", "2 × 2"), ("3x3", "3 × 3"), ("4x4", "4 × 4")] {
-                    if ui.selectable_label(v.layout_name() == k, label).clicked() {
+                    if ui.selectable_label(v.layout_name() == k, lang.tr(label)).clicked() {
                         let _ = app.session.execute("multicam.gridLayout", json!({"layout": k}));
                     }
                 }
             });
-            if ui.button("Edit Cameras…").clicked() {
+            if ui.button(lang.tr("Edit Cameras…")).clicked() {
                 let _ = crate::panels::multicam::route(app, "multicam.editCamerasDialog", &json!({}));
                 ui.close();
             }
@@ -486,8 +487,9 @@ fn transport(app: &mut FilmcraftApp, ui: &mut egui::Ui, row: Rect, which: Which)
     let prefix = if src { "source" } else { "program" };
     for (icon, cmd, tip) in buttons {
         let r = Rect::from_min_size(pos2(x, row.min.y + 2.0), vec2(bw - 2.0, 26.0));
-        let resp = ui.interact(r, egui::Id::new((prefix, cmd)), Sense::click()).on_hover_text(tip);
-        app.auto.add(&format!("{prefix}.transport.{cmd}"), r, tip);
+        let tr_tip = app.tr(tip);
+        let resp = ui.interact(r, egui::Id::new((prefix, cmd)), Sense::click()).on_hover_text(tr_tip);
+        app.auto.add(&format!("{prefix}.transport.{cmd}"), r, tr_tip);
         let is_play = cmd.ends_with("play") || cmd == "playback.toggle";
         if resp.hovered() {
             ui.painter().rect_filled(r, 4.0, t.hover);
@@ -512,7 +514,7 @@ fn transport(app: &mut FilmcraftApp, ui: &mut egui::Ui, row: Rect, which: Which)
                 }
                 "src.play" => Ok(serde_json::Value::Null),
                 "exportFrame" => {
-                    app.ui.status = "Export Frame: use Export mode (M6)".into();
+                    app.ui.status = app.tr("Export Frame: use Export mode (M6)").into();
                     Ok(serde_json::Value::Null)
                 }
                 c => crate::menus::invoke(app, &ctx, c, json!({})),
@@ -525,7 +527,7 @@ fn transport(app: &mut FilmcraftApp, ui: &mut egui::Ui, row: Rect, which: Which)
     }
     // button editor "+"
     let r = Rect::from_min_size(pos2(row.max.x - 30.0, row.min.y + 4.0), vec2(22.0, 22.0));
-    let resp = ui.interact(r, egui::Id::new((prefix, "btn-editor")), Sense::click()).on_hover_text("Button Editor");
+    let resp = ui.interact(r, egui::Id::new((prefix, "btn-editor")), Sense::click()).on_hover_text(app.tr("Button Editor"));
     icons::paint(ui.painter(), r.shrink(5.0), Icon::Plus, if resp.hovered() { t.tab_text_active } else { t.text_dim });
 }
 

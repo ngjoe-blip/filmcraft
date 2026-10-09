@@ -106,7 +106,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     ];
     for (icon, id, tip, enabled) in nav {
         let r = Rect::from_min_size(pos2(x, bar.min.y), vec2(24.0, 24.0));
-        let resp = ui.interact(r, egui::Id::new(("mb-nav", id)), Sense::click()).on_hover_text(tip);
+        let resp = ui.interact(r, egui::Id::new(("mb-nav", id)), Sense::click()).on_hover_text(app.tr(tip));
         app.auto.add(&format!("mediaBrowser.{id}"), r, tip);
         if resp.hovered() && enabled {
             ui.painter().rect_filled(r, 3.0, t.hover);
@@ -137,12 +137,12 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     x = pr.max.x + 6.0;
     // file types
     let fr = Rect::from_min_size(pos2(x, bar.min.y + 1.0), vec2(150.0, 22.0));
-    let label = mb::FILE_TYPES.iter().find(|f| f.0 == prefs.file_types).map(|f| f.1.to_string()).unwrap_or_else(|| format!(".{}", prefs.file_types));
-    let fresp = crate::widgets::dropdown_text(ui, fr, &label, &t, egui::Id::new("mb-types")).on_hover_text("File Types Displayed");
+    let label = mb::FILE_TYPES.iter().find(|f| f.0 == prefs.file_types).map(|f| app.tr(f.1).to_string()).unwrap_or_else(|| format!(".{}", prefs.file_types));
+    let fresp = crate::widgets::dropdown_text(ui, fr, &label, &t, egui::Id::new("mb-types")).on_hover_text(app.tr("File Types Displayed"));
     app.auto.add("mediaBrowser.fileTypes", fr, "File Types Displayed");
     egui::Popup::menu(&fresp).show(|ui| {
         for (k, l) in mb::FILE_TYPES {
-            let r = ui.selectable_label(prefs.file_types == k, l);
+            let r = ui.selectable_label(prefs.file_types == k, app.tr(l));
             app.auto.add(&format!("mediaBrowser.fileTypes.{k}"), r.rect, l);
             if r.clicked() {
                 exec(app, &ctx, "mediaBrowser.settings", json!({"fileTypes": k}));
@@ -150,7 +150,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             }
         }
         ui.separator();
-        ui.menu_button("File Extension", |ui| {
+        ui.menu_button(app.tr("File Extension"), |ui| {
             for e in mb::extensions() {
                 if ui.selectable_label(prefs.file_types == e, format!(".{e}")).clicked() {
                     exec(app, &ctx, "mediaBrowser.settings", json!({"fileTypes": e}));
@@ -162,7 +162,7 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     x = fr.max.x + 6.0;
     for (icon, v, tip) in [(Icon::ListView, "list", "List View"), (Icon::IconView, "thumbnails", "Thumbnail View")] {
         let r = Rect::from_min_size(pos2(x, bar.min.y), vec2(24.0, 24.0));
-        let resp = ui.interact(r, egui::Id::new(("mb-view", v)), Sense::click()).on_hover_text(tip);
+        let resp = ui.interact(r, egui::Id::new(("mb-view", v)), Sense::click()).on_hover_text(app.tr(tip));
         app.auto.add(&format!("mediaBrowser.view.{v}"), r, tip);
         if prefs.view == v {
             ui.painter().rect_filled(r, 3.0, t.pressed);
@@ -179,19 +179,19 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
     let row2 = Rect::from_min_size(pos2(bar.min.x, bar.max.y + 4.0), vec2(bar.width(), 20.0));
     let mut ingest = app.session.project.settings.ingest.enabled;
     let mut c = ui.new_child(egui::UiBuilder::new().max_rect(row2).id_salt("mb-row2").layout(egui::Layout::left_to_right(egui::Align::Center)));
-    let r = c.checkbox(&mut ingest, "Ingest");
+    let r = c.checkbox(&mut ingest, app.tr("Ingest"));
     app.auto.add("mediaBrowser.ingest", r.rect, "Ingest");
     if r.changed() {
         exec(app, &ctx, "project.ingestSettings", json!({"enabled": ingest}));
     }
-    let w = c.add(egui::Button::new(egui::RichText::new("⚙").size(12.0)).frame(false)).on_hover_text("Open Ingest Settings");
+    let w = c.add(egui::Button::new(egui::RichText::new("⚙").size(12.0)).frame(false)).on_hover_text(app.tr("Open Ingest Settings"));
     app.auto.add("mediaBrowser.ingestSettings", w.rect, "Open Ingest Settings");
     if w.clicked() {
         exec(app, &ctx, "project.ingestSettings", json!({}));
     }
     c.add_space(12.0);
     let mut seq = prefs.import_as_image_sequence;
-    let r = c.checkbox(&mut seq, "Import as Image Sequence");
+    let r = c.checkbox(&mut seq, app.tr("Import as Image Sequence"));
     app.auto.add("mediaBrowser.importAsImageSequence", r.rect, "Import as Image Sequence");
     if r.changed() {
         exec(app, &ctx, "mediaBrowser.settings", json!({"importAsImageSequence": seq}));
@@ -219,7 +219,13 @@ pub fn show(app: &mut FilmcraftApp, ui: &mut egui::Ui, rect: Rect) {
             }
             let n = entries.iter().filter(|e| !e.is_dir).count();
             let sel = app.session.browser.selection.len();
-            let status = if sel > 0 { format!("{sel} of {n} items selected") } else { format!("{n} items") };
+            let status = if app.ui.language == crate::i18n::Language::ZhCn {
+                if sel > 0 { format!("已选择 {n} 项中的 {sel} 项") } else { format!("{n} 项") }
+            } else if sel > 0 {
+                format!("{sel} of {n} items selected")
+            } else {
+                format!("{n} items")
+            };
             ui.painter().text(pos2(list_r.min.x + 6.0, rect.max.y - 12.0), Align2::LEFT_CENTER, &status, Tokens::ui(11.0), t.text_dim);
             app.auto.add("mediaBrowser.count", Rect::from_min_size(pos2(list_r.min.x, rect.max.y - 22.0), vec2(160.0, 20.0)), &status);
         }
@@ -261,10 +267,10 @@ fn tree(app: &mut FilmcraftApp, ui: &mut egui::Ui, r: Rect, dir: &str) {
                 .as_array()
                 .map(|a| a.iter().filter_map(|v| Some((v["name"].as_str()?.to_string(), v["path"].as_str()?.to_string()))).collect())
                 .unwrap_or_default();
-            let hr = ui.label(egui::RichText::new(title).size(11.0).color(app.tokens.text_dim).strong());
+            let hr = ui.label(egui::RichText::new(app.tr(title)).size(11.0).color(app.tokens.text_dim).strong());
             app.auto.add(&format!("mediaBrowser.tree.{key}"), hr.rect, title);
             if list.is_empty() {
-                ui.label(egui::RichText::new("  (none)").size(10.5).color(app.tokens.text_faint));
+                ui.label(egui::RichText::new(format!("  ({})", app.tr("none"))).size(10.5).color(app.tokens.text_faint));
             }
             for (name, path) in list {
                 let expandable = matches!(key, "localDrives" | "network" | "favorites");
@@ -329,17 +335,17 @@ fn node(
     resp.context_menu(|ui| {
         let fav = app.session.prefs.media_browser.favorites.iter().any(|f| f == path);
         let label = if fav { "Remove from Favorites" } else { "Add to Favorites" };
-        let b = ui.button(label);
+        let b = ui.button(app.tr(label));
         app.auto.add("mediaBrowser.treeMenu.favorite", b.rect, label);
         if b.clicked() {
             exec(app, ctx, "mediaBrowser.favorite", json!({"path": path, "remove": fav}));
             ui.close();
         }
-        if ui.button("Import").clicked() {
+        if ui.button(app.tr("Import")).clicked() {
             exec(app, ctx, "mediaBrowser.import", json!({"paths": [path]}));
             ui.close();
         }
-        if section == "recent" && ui.button("Clear Recent Directories").clicked() {
+        if section == "recent" && ui.button(app.tr("Clear Recent Directories")).clicked() {
             exec(app, ctx, "mediaBrowser.clearRecent", json!({}));
             ui.close();
         }
@@ -399,14 +405,14 @@ fn entry_interactions(app: &mut FilmcraftApp, ui: &egui::Ui, resp: &egui::Respon
     }
     resp.context_menu(|ui| {
         let paths: Vec<String> = if app.session.browser.selection.contains(&e.path) { app.session.browser.selection.clone() } else { vec![e.path.clone()] };
-        let b = ui.button("Import");
+        let b = ui.button(app.tr("Import"));
         app.auto.add("mediaBrowser.entryMenu.import", b.rect, "Import");
         if b.clicked() {
             exec(app, &ctx, "mediaBrowser.import", json!({"paths": paths, "imageSequence": false}));
             ui.close();
         }
         if !e.is_dir {
-            let b = ui.button("Open In Source Monitor");
+            let b = ui.button(app.tr("Open In Source Monitor"));
             app.auto.add("mediaBrowser.entryMenu.openInSource", b.rect, "Open In Source Monitor");
             if b.clicked() {
                 exec(app, &ctx, "mediaBrowser.openInSource", json!({"path": e.path}));
@@ -414,7 +420,7 @@ fn entry_interactions(app: &mut FilmcraftApp, ui: &egui::Ui, resp: &egui::Respon
             }
         }
         if e.numbered {
-            let b = ui.button("Import as Image Sequence");
+            let b = ui.button(app.tr("Import as Image Sequence"));
             app.auto.add("mediaBrowser.entryMenu.importSequence", b.rect, "Import as Image Sequence");
             if b.clicked() {
                 exec(app, &ctx, "mediaBrowser.import", json!({"paths": [e.path], "imageSequence": true}));
@@ -423,12 +429,12 @@ fn entry_interactions(app: &mut FilmcraftApp, ui: &egui::Ui, resp: &egui::Respon
         }
         if e.is_dir {
             let fav = app.session.prefs.media_browser.favorites.contains(&e.path);
-            if ui.button(if fav { "Remove from Favorites" } else { "Add to Favorites" }).clicked() {
+            if ui.button(if fav { app.tr("Remove from Favorites") } else { app.tr("Add to Favorites") }).clicked() {
                 exec(app, &ctx, "mediaBrowser.favorite", json!({"path": e.path, "remove": fav}));
                 ui.close();
             }
         }
-        if ui.button("Reveal in Finder").clicked() {
+        if ui.button(app.tr("Reveal in Finder")).clicked() {
             let _ = crate::panels::menu_dialogs::open_path(app, &ctx, &e.path, true);
             ui.close();
         }
@@ -551,12 +557,12 @@ fn list(app: &mut FilmcraftApp, ui: &mut egui::Ui, r: Rect, entries: &[Entry], c
     let mut x = header.min.x + 4.0 - out.state.offset.x;
     for (c, w) in columns.iter().zip(&widths) {
         let cr = Rect::from_min_size(pos2(x, header.min.y), vec2(*w, 20.0));
-        hp.text(pos2(cr.min.x + 4.0, cr.center().y), Align2::LEFT_CENTER, c, Tokens::ui(11.0), t.text_dim);
+        hp.text(pos2(cr.min.x + 4.0, cr.center().y), Align2::LEFT_CENTER, app.tr(c), Tokens::ui(11.0), t.text_dim);
         if cr.intersects(header) {
             let resp = ui.interact(cr.intersect(header), egui::Id::new(("mb-col", c)), Sense::click());
             app.auto.add(&format!("mediaBrowser.header.{c}"), cr.intersect(header), c);
             resp.context_menu(|ui| {
-                if ui.button("Edit Columns…").clicked() {
+                if ui.button(app.tr("Edit Columns…")).clicked() {
                     app.ui.media_browser.edit_columns = Some(columns.to_vec());
                     ui.close();
                 }
@@ -723,9 +729,10 @@ pub fn panel_menu(app: &mut FilmcraftApp, ui: &mut egui::Ui) -> bool {
     let has_sel = !app.session.browser.selection.is_empty();
     let mut close = false;
     let item = |app: &mut FilmcraftApp, ui: &mut egui::Ui, id: &str, label: &str, enabled: bool, checked: Option<bool>, shortcut: &str| -> bool {
+        let tr_label = app.tr(label);
         let b = match checked {
-            Some(c) => egui::Button::selectable(c, label),
-            None => egui::Button::new(label),
+            Some(c) => egui::Button::selectable(c, tr_label),
+            None => egui::Button::new(tr_label),
         };
         let r = ui.add_enabled(enabled, b.shortcut_text(shortcut));
         app.auto.add(&format!("mediaBrowser.menu.{id}"), r.rect, label);
@@ -788,14 +795,14 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
     let Some(mut cols) = app.ui.media_browser.edit_columns.clone() else { return };
     let mut close = false;
     let mut ok = false;
-    egui::Window::new("Edit Columns").id(egui::Id::new("mb-edit-columns")).collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(
+    egui::Window::new(app.tr("Edit Columns")).id(egui::Id::new("mb-edit-columns")).collapsible(false).resizable(false).anchor(Align2::CENTER_CENTER, [0.0, 0.0]).show(
         ctx,
         |ui| {
             let mut mv: Option<(usize, isize)> = None;
             for c in mb::ALL_COLUMNS {
                 ui.horizontal(|ui| {
                     let mut on = cols.iter().any(|x| x == c);
-                    let r = ui.add_enabled(c != "Name", egui::Checkbox::new(&mut on, c));
+                    let r = ui.add_enabled(c != "Name", egui::Checkbox::new(&mut on, app.tr(c)));
                     app.auto.add(&format!("mediaBrowser.columns.{c}"), r.rect, c);
                     if r.changed() {
                         if on {
@@ -819,10 +826,10 @@ pub fn dialogs(app: &mut FilmcraftApp, ctx: &egui::Context) {
             }
             ui.separator();
             ui.horizontal(|ui| {
-                let r = ui.button("Cancel");
+                let r = ui.button(app.tr("Cancel"));
                 app.auto.add("mediaBrowser.columns.cancel", r.rect, "Cancel");
                 close |= r.clicked();
-                let r = ui.button("OK");
+                let r = ui.button(app.tr("OK"));
                 app.auto.add("mediaBrowser.columns.ok", r.rect, "OK");
                 ok = r.clicked();
             });

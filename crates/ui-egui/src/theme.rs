@@ -287,11 +287,16 @@ fn add_craft_fonts(fonts: &mut FontDefinitions) {
     for f in &jpan {
         fonts.font_data.insert(craft_font_name(f), Arc::new(FontData::from_static(f.bytes)));
     }
+    let hans: Vec<_> = filmcraft_text::fonts::craft_chinese().collect();
+    for f in &hans {
+        fonts.font_data.insert(craft_font_name(f), Arc::new(FontData::from_static(f.bytes)));
+    }
     for (family, stack) in fonts.families.iter_mut() {
         let heavy = matches!(family, FontFamily::Name(n) if matches!(n.as_ref(), "semibold" | "medium"));
         let mut order = jpan.clone();
         order.sort_by_key(|f| (!f.family.contains("Gothic"), (f.style == "Bold") != heavy));
         stack.extend(order.iter().map(|f| craft_font_name(f)));
+        stack.extend(hans.iter().map(|f| craft_font_name(f)));
     }
 }
 

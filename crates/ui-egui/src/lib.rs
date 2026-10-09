@@ -289,6 +289,12 @@ pub fn gpu_compositor_unsupported(adapter: &eframe::wgpu::Adapter) -> Option<Str
 }
 
 impl FilmcraftApp {
+    /// Look up a translation for the current interface language.
+    #[inline]
+    pub fn tr<'a>(&self, text: &'a str) -> &'a str {
+        self.ui.language.tr(text)
+    }
+
     /// Enable the GPU compositor on the eframe wgpu device.
     pub fn set_wgpu(&mut self, rs: eframe::egui_wgpu::RenderState) {
         if let Some(why) = gpu_compositor_unsupported(&rs.adapter) {
@@ -374,9 +380,12 @@ impl FilmcraftApp {
         let frames = Arc::new(FrameServer::new(session.media.clone(), session.services.clone(), session.previews.clone(), FrameServer::default_workers()));
         let workspaces =
             session.prefs_path.as_ref().and_then(|p| p.parent()).map(|d| dock::WorkspacePrefs::load(&d.join(dock::WORKSPACES_FILE))).unwrap_or_default();
+        let language = crate::i18n::Language::parse(&session.prefs.appearance.language).unwrap_or_default();
+        let mut ui = UiState::default();
+        ui.language = language;
         Self {
             session,
-            ui: UiState::default(),
+            ui,
             tokens: Tokens::for_kind(ThemeKind::Dark),
             frames,
             playback: Playback { speed: 1.0, ..Default::default() },
@@ -475,6 +484,13 @@ impl FilmcraftApp {
         let prev = self.applied_prefs.take();
         if prev.as_ref().is_none_or(|q| q.appearance != p.appearance || q.general.show_tool_tips != p.general.show_tool_tips) {
             self.set_theme(ctx, ThemeKind::from_pref(&p.appearance.color_theme));
+            let mut lang = crate::i18n::Language::parse(&p.appearance.language).unwrap_or(crate::i18n::Language::En);
+            if lang == crate::i18n::Language::ZhCn && !crate::i18n::install_chinese_font(ctx) {
+                lang = crate::i18n::Language::En;
+            } else if lang == crate::i18n::Language::Ja && !crate::i18n::install_japanese_font(ctx) {
+                lang = crate::i18n::Language::En;
+            }
+            self.ui.language = lang;
         }
         self.frames.set_cache_budget(p.memory.frame_cache_mb as usize * (1 << 20));
         self.ui.play_after_render = p.timeline.play_after_rendering;
@@ -1232,6 +1248,7 @@ impl FilmcraftApp {
         }
         self.handle_shortcuts(&ctx);
         self.advance_playback(&ctx);
+        ctx.data_mut(|d| d.insert_temp(egui::Id::new("interface-language"), self.ui.language));
         let t = self.tokens;
         let full = ui.max_rect();
         ui.painter().rect_filled(full, 0.0, t.app_bg);
@@ -1259,7 +1276,7 @@ impl FilmcraftApp {
                 ui.ctx().request_repaint_after(std::time::Duration::from_secs(1));
             }
         }
-        let hint = if !self.ui.status.is_empty() { self.ui.status.clone() } else { self.hint_text() };
+        let hint = if !self.ui.status.is_empty() { self.tr(&self.ui.status).to_string() } else { self.hint_text() };
         ui.painter().text(egui::pos2(sb.min.x + 10.0, sb.center().y), egui::Align2::LEFT_CENTER, hint, Tokens::ui(11.0), t.text_dim);
         let resp = ui.interact(sb, egui::Id::new("status-bar"), egui::Sense::click());
         if resp.clicked() {
@@ -1298,7 +1315,7 @@ impl FilmcraftApp {
         let p = ui.painter();
         p.rect_filled(bar, 3.0, t.separator);
         p.rect_filled(egui::Rect::from_min_size(bar.min, egui::vec2(bar.width() * f, bar.height())), 3.0, t.accent);
-        let verb = if job.label.starts_with("Rendering") { job.label.clone() } else { "Exporting".to_string() };
+        let verb = if job.label.starts_with("Rendering") { self.tr(&job.label) } else { self.tr("Exporting") };
         p.text(
             egui::pos2(bar.min.x - 8.0, sb.center().y),
             egui::Align2::RIGHT_CENTER,
@@ -1313,7 +1330,7 @@ impl FilmcraftApp {
         p.line_segment([cancel.center() + egui::vec2(-k, k), cancel.center() + egui::vec2(k, -k)], egui::Stroke::new(1.4, c));
         self.auto.add("status.job.cancel", cancel, &format!("Cancel {}", job.label));
         self.auto.add("status.job.progress", bar, &format!("{:.0}%{left}", f * 100.0));
-        if resp.on_hover_text("Cancel").clicked() {
+        if resp.on_hover_text(self.tr("Cancel")).clicked() {
             job.progress.cancel.store(true, Ordering::Relaxed);
             self.watched_render = None;
         }
@@ -1321,7 +1338,7 @@ impl FilmcraftApp {
 
     /// Contextual hint for the status bar (Premiere shows tool/gesture hints here).
     fn hint_text(&self) -> String {
-        match self.ui.tool {
+        let text = match self.ui.tool {
             state::Tool::Selection => "Click to select, or click in empty space and drag to marquee select. Use Shift, Opt, and Cmd for other options.",
             state::Tool::TrackSelectForward => "Click to select all clips to the right in all tracks. Shift-click for a single track.",
             state::Tool::TrackSelectBackward => "Click to select all clips to the left in all tracks. Shift-click for a single track.",
@@ -1335,8 +1352,8 @@ impl FilmcraftApp {
             state::Tool::Hand => "Drag to scroll the timeline.",
             state::Tool::Zoom => "Click to zoom in; Opt-click to zoom out.",
             _ => "",
-        }
-        .to_string()
+        };
+        self.tr(text).to_string()
     }
 
     fn dock_area(&mut self, ui: &mut egui::Ui, body: egui::Rect) {
@@ -1466,9 +1483,14 @@ impl eframe::App for FilmcraftApp {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if !self.styled {
             theme::install(ctx, &self.tokens);
-            // theme::install replaces the fonts: add the system Japanese font back (or fall back to
-            // English when a saved Japanese setting meets a system without one)
+            // Pre-install available Chinese and Japanese font fallbacks so CJK characters (including
+            // the Language menu item itself) render properly even when English is active.
+            let _ = i18n::install_chinese_font(ctx);
+            let _ = i18n::install_japanese_font(ctx);
+            // Verify active language meets font requirements (or fall back to English)
             if self.ui.language == i18n::Language::Ja && !i18n::install_japanese_font(ctx) {
+                self.ui.language = i18n::Language::En;
+            } else if self.ui.language == i18n::Language::ZhCn && !i18n::install_chinese_font(ctx) {
                 self.ui.language = i18n::Language::En;
             }
             self.styled = true;
